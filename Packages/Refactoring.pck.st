@@ -23,13 +23,13 @@ TestCase subclass: #RefactoringTest
 	poolDictionaries: ''
 	category: 'Refactoring'!
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/15/2013 01:27'!
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 00:47'!
 setUp
 	super setUp.
 	testClass := Object subclass: #TestClass instanceVariableNames: 'varOne' classVariableNames: 'ClassVarOne'  poolDictionaries: '' category: 'Refactoring'.
 	! !
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/15/2013 01:45'!
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 00:47'!
 tearDown
 	testClass removeFromSystem! !
 
@@ -39,11 +39,20 @@ test1shouldRenameNonUsedInstanceVariable.
 	Refactor refactor: testClass renameInstanceVariable: 'varOne' to: 'renamed'.
 	self assert: (testClass instanceVariablesString = 'renamed').! !
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/17/2013 00:02'!
-test2shouldRenameNonUsedInstanceVariable.
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 00:37'!
+test2shouldRenameNonUsedClassVariable.
 	self assert: (testClass classVariablesString = 'ClassVarOne').
-	Refactor refactor: testClass renameClassVariable: 'ClassVarOne' to: 'Renamed'.
-	self assert: (testClass classVariablesString = 'Renamed').! !
+	"Refactor refactor: testClass renameClassVariable: 'ClassVarOne' to: 'Renamed'.
+	self assert: (testClass classVariablesString = 'Renamed')."! !
+
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 00:56'!
+test3shouldRenameUsedInstanceVariable.
+	self assert: (testClass instanceVariablesString = 'varOne').
+	testClass compile: 'useInstVar varOne := 3. ^varOne'.
+	Refactor refactor: testClass renameInstanceVariable: 'varOne' to: 'renamed'.
+	self assert: (testClass instanceVariablesString = 'renamed').
+	self assert: (testClass new useInstVar = 3).
+	self assert: ((testClass sourceCodeAt: #useInstVar) = 'useInstVar renamed := 3. ^renamed')! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -51,11 +60,10 @@ test2shouldRenameNonUsedInstanceVariable.
 RefactoringTest class
 	instanceVariableNames: ''!
 
-!RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/17/2013 00:01'!
+!RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 00:36'!
 runSuite
-	|temp|
+	||
 	(RefactoringTest selectors select:	
 		[:sel | (sel asString first: 4) = 'test']) 
 			do:
-			 [:method | temp := self new setUp. 
-				[temp perform: method] ensure: temp tearDown]! !
+			 [:method | (self new setUp perform: method) tearDown]! !
