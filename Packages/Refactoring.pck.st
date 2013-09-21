@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 19 September 2013 at 9:31:31.987 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 21 September 2013 at 8:46:30.581 pm'!
 'Description '!
-!provides: 'Refactoring' 1 2!
+!provides: 'Refactoring' 1 4!
 !classDefinition: #Refactor category: #Refactoring!
 Object subclass: #Refactor
 	instanceVariableNames: ''
@@ -21,10 +21,51 @@ TestCase subclass: #RefactoringTest
 RefactoringTest class
 	instanceVariableNames: ''!
 
+!classDefinition: #Testing category: #Refactoring!
+Object subclass: #Testing
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'Testing class' category: #Refactoring!
+Testing class
+	instanceVariableNames: ''!
+
 
 !Refactor class methodsFor: 'methods' stamp: 'NR 9/19/2013 21:16'!
 refactor: class renameClassVariable: name to: newName
 	class renameSilentlyClassVar: name to: newName.! !
+
+!Refactor class methodsFor: 'methods' stamp: 'NR 9/21/2013 20:46'!
+refactor: class renameInstanceMethod: oldSelector to: newSelector
+	|usages code selwordsOld selwordsNew arguments header newHeader colon| 
+	newHeader := ''.
+	selwordsOld := oldSelector asString findTokens: ':'.
+	selwordsNew := newSelector asString findTokens: ':'.
+	arguments := (Parser new parse: ( header := class methodHeaderFor: oldSelector) class: class) arguments collect: [:each | each name].
+
+	(selwordsOld size = selwordsNew size) ifFalse: [Exception new signal: 'The new name should contain the same amount of keywords as the old'].
+	
+	usages := Smalltalk allCallsOn: oldSelector.
+	code := class sourceCodeAt: oldSelector.
+	arguments isEmpty 
+		ifTrue: [ colon := ''. 
+			newHeader := newSelector asString.] 
+		ifFalse: [ colon := ':'.
+			 arguments with: selwordsNew do: [:arg :sel | newHeader := newHeader, sel asString,': ',arg,' ']].
+	code := newHeader, (code allButFirst: (header size)).
+	
+	class removeSelector: oldSelector.
+	class compile: code.
+	"TODO: dont replace over all the class, just over the actual method"
+	usages do:[:ref |
+		1 to: selwordsOld size do:[:i | 	
+			ref actualClass replaceSilently: ((selwordsOld at: i),colon) to: ((selwordsNew at: i),colon) 
+			]
+		].
+	
+	
+! !
 
 !Refactor class methodsFor: 'methods' stamp: 'NR 9/15/2013 01:41'!
 refactor: class renameInstanceVariable: name to: newName
@@ -70,6 +111,17 @@ test4shouldRenameUsedClassVariable.
 	self assert: (testClass newMethod = 42).
 	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod ClassVarOne := 42. ^ClassVarOne'.! !
 
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/21/2013 20:46'!
+test5shouldRenameNonUsedInstanceMethod
+	testClass compile: 'iWasRenamed ^12'.
+	self assert: (testClass selectors includes: #iWasRenamed).
+	self deny: (testClass selectors includes: #iWasRenamed).
+	Refactor refactor: testClass renameInstanceMethod: #iWasRenamed to: #iWasRenamed.
+	self deny: (testClass selectors includes: #iWasRenamed).
+	self assert: (testClass selectors includes: #iWasRenamed).
+	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
+	self assert: (testClass new iWasRenamed = 12).! !
+
 !RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 21:30'!
 runSuite
 	||
@@ -77,3 +129,30 @@ runSuite
 		[:sel | (sel asString first: 4) = 'test']) 
 			do:
 			 [:method | self new setUp perform: method;tearDown]! !
+
+!Testing methodsFor: 'as yet unclassified' stamp: 'NR 9/21/2013 19:35'!
+aMessage
+	^1.! !
+
+!Testing methodsFor: 'as yet unclassified' stamp: 'NR 9/21/2013 20:38'!
+cuatro: a cinco: b seis: c  
+	| eee eed |
+	eee := 1.
+	eed := 2.
+	^eee+eed. ! !
+
+!Testing methodsFor: 'as yet unclassified' stamp: 'NR 9/21/2013 20:38'!
+usame
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+	self cuatro: 'u' cinco: 'befe' seis: 'ooe'.
+! !
