@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 21 September 2013 at 8:46:30.581 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 23 September 2013 at 7:15:22.228 pm'!
 'Description '!
-!provides: 'Refactoring' 1 4!
+!provides: 'Refactoring' 1 5!
 !classDefinition: #Refactor category: #Refactoring!
 Object subclass: #Refactor
 	instanceVariableNames: ''
@@ -111,16 +111,27 @@ test4shouldRenameUsedClassVariable.
 	self assert: (testClass newMethod = 42).
 	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod ClassVarOne := 42. ^ClassVarOne'.! !
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/21/2013 20:46'!
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/23/2013 19:14'!
 test5shouldRenameNonUsedInstanceMethod
-	testClass compile: 'iWasRenamed ^12'.
-	self assert: (testClass selectors includes: #iWasRenamed).
+	testClass compile: 'methodToRename ^12'.
+	self assert: (testClass selectors includes: #methodToRename).
 	self deny: (testClass selectors includes: #iWasRenamed).
-	Refactor refactor: testClass renameInstanceMethod: #iWasRenamed to: #iWasRenamed.
-	self deny: (testClass selectors includes: #iWasRenamed).
+	Refactor refactor: testClass renameInstanceMethod: #methodToRename to: #iWasRenamed.
+	self deny: (testClass selectors includes: #methodToRename).
 	self assert: (testClass selectors includes: #iWasRenamed).
 	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
 	self assert: (testClass new iWasRenamed = 12).! !
+
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/23/2013 19:14'!
+test6shouldRenameNonUsedInstanceMethodWithMultipleKeywords
+	testClass compile: 'thisIsAMethod: firstPar thatUses: secondPar multipleKeywords: thirdPar ^firstPar + secondPar + thirdPar'.
+	self assert: (testClass selectors includes: #thisIsAMethod:thatUses:multipleKeywords:).
+	self deny: (testClass selectors includes: #andNow:hasNew:keywordNames:).
+	Refactor refactor: testClass renameInstanceMethod: #thisIsAMethod:thatUses:multipleKeywords: to: #andNow:hasNew:keywordNames:.
+	self deny: (testClass selectors includes: #thisIsAMethod:thatUses:keywordNames:).
+	self assert: (testClass selectors includes: #andNow:hasNew:keywordNames:).
+	self assert: (testClass sourceCodeAt: #andNow:hasNew:keywordNames:) = 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar  ^firstPar + secondPar + thirdPar'.
+	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42).! !
 
 !RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 21:30'!
 runSuite
