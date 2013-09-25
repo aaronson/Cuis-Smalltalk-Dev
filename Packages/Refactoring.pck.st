@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 24 September 2013 at 11:49:52.887 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 25 September 2013 at 1:47:04.725 am'!
 'Description '!
-!provides: 'Refactoring' 1 5!
+!provides: 'Refactoring' 1 6!
 !classDefinition: #Refactor category: #Refactoring!
 Object subclass: #Refactor
 	instanceVariableNames: ''
@@ -116,14 +116,14 @@ test3shouldRenameUsedInstanceVariable.
 	self assert: (testClass new useInstVar = 3).
 	self assert: ((testClass sourceCodeAt: #useInstVar) = 'useInstVar renamed := 3. ^renamed')! !
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/19/2013 21:30'!
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/25/2013 01:33'!
 test4shouldRenameUsedClassVariable.
 	self assert: (testClass classVariablesString = 'ClassVarOne').
-	Refactor refactor: testClass renameClassVariable:'ClassVarOne' to: 'Renamed'.
 	testClass class compile: 'newMethod ClassVarOne := 42. ^ClassVarOne'.
+	Refactor refactor: testClass renameClassVariable:'ClassVarOne' to: 'Renamed'.
 	self assert: (testClass classVariablesString = 'Renamed').
 	self assert: (testClass newMethod = 42).
-	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod ClassVarOne := 42. ^ClassVarOne'.! !
+	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod Renamed := 42. ^Renamed'.! !
 
 !RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/24/2013 20:52'!
 test5shouldRenameNonUsedInstanceMethod
