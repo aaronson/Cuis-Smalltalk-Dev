@@ -1,9 +1,9 @@
 test6shouldRenameNonUsedInstanceMethodWithMultipleKeywords
-	testClass compile: 'thisIsAMethod: firstPar thatUses: secondPar multipleKeywords: thirdPar ^firstPar + secondPar + thirdPar'.
-	self assert: (testClass selectors includes: #thisIsAMethod:thatUses:multipleKeywords:).
+	testClass compile: 'thisIsAMethod: firstPar thatUses: secondPar multipleParameters: thirdPar ^firstPar + secondPar + thirdPar'.
+	self assert: (testClass selectors includes: #thisIsAMethod:thatUses:multipleParameters:).
 	self deny: (testClass selectors includes: #andNow:hasNew:keywordNames:).
-	Refactor refactor: testClass renameInstanceMethod: #thisIsAMethod:thatUses:multipleKeywords: to: #andNow:hasNew:keywordNames:.
-	self deny: (testClass selectors includes: #thisIsAMethod:thatUses:keywordNames:).
+	Refactor refactor: testClass renameInstanceMethod: #thisIsAMethod:thatUses:multipleParameters: to: #andNow:hasNew:keywordNames:.
+	self deny: (testClass selectors includes: #thisIsAMethod:thatUses:multipleParameters:).
 	self assert: (testClass selectors includes: #andNow:hasNew:keywordNames:).
 	self assert: (testClass sourceCodeAt: #andNow:hasNew:keywordNames:) = 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar  ^firstPar + secondPar + thirdPar'.
 	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42).
