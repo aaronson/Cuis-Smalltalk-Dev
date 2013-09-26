@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 25 September 2013 at 1:47:04.725 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 25 September 2013 at 9:06:34.978 pm'!
 'Description '!
-!provides: 'Refactoring' 1 6!
+!provides: 'Refactoring' 1 7!
 !classDefinition: #Refactor category: #Refactoring!
 Object subclass: #Refactor
 	instanceVariableNames: ''
@@ -137,9 +137,33 @@ test5shouldRenameNonUsedInstanceMethod
 	self assert: (testClass new iWasRenamed = 12).
 "! !
 
-!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'NR 9/24/2013 20:52'!
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'AA 9/25/2013 19:00'!
 test6shouldRenameNonUsedInstanceMethodWithMultipleKeywords
-	"testClass compile: 'thisIsAMethod: firstPar thatUses: secondPar multipleParameters: thirdPar ^firstPar + secondPar + thirdPar'.
+	"testClass compile: 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar ^firstPar + secondPar + thirdPar'.
+	self assert: (testClass selectors includes: #thisIsAMethod:thatUses:keywordNames:).
+	self deny: (testClass selectors includes: #andNow:hasNew:keywordNames:).
+	Refactor refactor: testClass renameInstanceMethod: #thisIsAMethod:thatUses:keywordNames: to: #andNow:hasNew:keywordNames:.
+	self deny: (testClass selectors includes: #thisIsAMethod:thatUses:keywordNames:).
+	self assert: (testClass selectors includes: #andNow:hasNew:keywordNames:).
+	self assert: (testClass sourceCodeAt: #andNow:hasNew:keywordNames:) = 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar  ^firstPar + secondPar + thirdPar'.
+	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42)."! !
+
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'AA 9/25/2013 19:05'!
+test7shouldRenameUsedInstanceMethod
+"	testClass compile: 'methodToRename ^12'.
+	testClass compile: 'newMethod ^self methodToRename'.
+	self assert: (testClass selectors includes: #methodToRename).
+	self deny: (testClass selectors includes: #iWasRenamed).
+	Refactor refactor: testClass renameInstanceMethod: #methodToRename to: #iWasRenamed.
+	self deny: (testClass selectors includes: #methodToRename).
+	self assert: (testClass selectors includes: #iWasRenamed).
+	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
+	self assert: (testClass new iWasRenamed = 12)."! !
+
+!RefactoringTest methodsFor: 'as yet unclassified' stamp: 'AA 9/25/2013 19:05'!
+test8shouldRenameUsedInstanceMethodWithMultipleKeywords
+"	testClass compile: 'thisIsAMethod: firstPar thatUses: secondPar multipleParameters: thirdPar ^firstPar + secondPar + thirdPar'.
+	testClass compile: 'newMethod ^self thisIsAMethod:1 thatUses:2 multipleParameters:3'.
 	self assert: (testClass selectors includes: #thisIsAMethod:thatUses:multipleParameters:).
 	self deny: (testClass selectors includes: #andNow:hasNew:keywordNames:).
 	Refactor refactor: testClass renameInstanceMethod: #thisIsAMethod:thatUses:multipleParameters: to: #andNow:hasNew:keywordNames:.
