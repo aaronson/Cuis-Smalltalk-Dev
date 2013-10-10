@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 30 September 2013 at 1:05:42.255 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 9 October 2013 at 9:56:05.415 pm'!
 'Description '!
-!provides: 'Refactoring' 1 9!
+!provides: 'Refactoring' 1 10!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -9,6 +9,76 @@ Error subclass: #RefactoringException
 	category: 'Refactoring'!
 !classDefinition: 'RefactoringException class' category: #Refactoring!
 RefactoringException class
+	instanceVariableNames: ''!
+
+!classDefinition: #Refactor category: #Refactoring!
+Object subclass: #Refactor
+	instanceVariableNames: 'oldName newName usages'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'Refactor class' category: #Refactoring!
+Refactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #ClassRenameRefactor category: #Refactoring!
+Refactor subclass: #ClassRenameRefactor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'ClassRenameRefactor class' category: #Refactoring!
+ClassRenameRefactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #ClassVariableRenameRefactor category: #Refactoring!
+Refactor subclass: #ClassVariableRenameRefactor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'ClassVariableRenameRefactor class' category: #Refactoring!
+ClassVariableRenameRefactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #DummyRefactor category: #Refactoring!
+Refactor subclass: #DummyRefactor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'DummyRefactor class' category: #Refactoring!
+DummyRefactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #InstanceVariableRenameRefactor category: #Refactoring!
+Refactor subclass: #InstanceVariableRenameRefactor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'InstanceVariableRenameRefactor class' category: #Refactoring!
+InstanceVariableRenameRefactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #MethodRenameRefactor category: #Refactoring!
+Refactor subclass: #MethodRenameRefactor
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'MethodRenameRefactor class' category: #Refactoring!
+MethodRenameRefactor class
+	instanceVariableNames: ''!
+
+!classDefinition: #RefactorOrganizer category: #Refactoring!
+Object subclass: #RefactorOrganizer
+	instanceVariableNames: 'refactors lastUndoneRefactor'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'RefactorOrganizer class' category: #Refactoring!
+RefactorOrganizer class
 	instanceVariableNames: ''!
 
 !classDefinition: #RefactoringTest category: #Refactoring!
@@ -25,6 +95,37 @@ RefactoringTest class
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
 	^'The new name should contain the same amount of keywords as the old method name'! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:46'!
+perform
+	self subclassResponsibility ! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:49'!
+undo! !
+
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:47'!
+perform
+	"Renombrar y reemplazar en los usages"! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:53'!
+initialize
+	refactors := OrderedCollection new.
+	lastUndoneRefactor := DummyRefactor new.! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 21:10'!
+redo
+	"ver que no sea dummy"
+	lastUndoneRefactor perform.
+	refactors addFirst: lastUndoneRefactor.
+	lastUndoneRefactor := DummyRefactor new.! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 21:06'!
+undo: aRefactor
+
+	(refactors includes: aRefactor) ifFalse: [RefactoringException new signal: 'Unrecognized refactor'].
+	aRefactor undo.
+	lastUndoneRefactor := aRefactor.
+	1 to: (refactors indexOf: aRefactor) do: [refactors removeFirst.].! !
 
 !RefactoringTest methodsFor: 'Running' stamp: 'NR 9/24/2013 21:05'!
 setUp
