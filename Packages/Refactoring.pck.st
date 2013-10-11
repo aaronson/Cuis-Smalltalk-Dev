@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 9 October 2013 at 9:56:05.415 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 11 October 2013 at 7:45:55.441 pm'!
 'Description '!
-!provides: 'Refactoring' 1 10!
+!provides: 'Refactoring' 1 11!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -63,7 +63,7 @@ InstanceVariableRenameRefactor class
 
 !classDefinition: #MethodRenameRefactor category: #Refactoring!
 Refactor subclass: #MethodRenameRefactor
-	instanceVariableNames: ''
+	instanceVariableNames: 'class'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Refactoring'!
@@ -91,6 +91,16 @@ TestCase subclass: #RefactoringTest
 RefactoringTest class
 	instanceVariableNames: ''!
 
+!classDefinition: #Usage category: #Refactoring!
+Object subclass: #Usage
+	instanceVariableNames: 'methodRef oldCode newCode'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'Usage class' category: #Refactoring!
+Usage class
+	instanceVariableNames: ''!
+
 
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
@@ -106,6 +116,50 @@ undo! !
 !ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:47'!
 perform
 	"Renombrar y reemplazar en los usages"! !
+
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:50'!
+initializeForClass: aClassName on: anOldMethodName to: aNewMethodName
+	| selwordsOld selwordsNew| 
+	class := aClassName.
+	oldName := anOldMethodName.
+	newName := aNewMethodName.
+	
+	"Find how many keywords are there"
+	selwordsOld := oldName asString findTokens: ':'.
+	selwordsNew := newName asString findTokens: ':'.
+	(selwordsOld size = selwordsNew size) ifFalse: [RefactoringException new signal: RefactoringException differentKeywordsAmountMessage ].	
+	
+	usages := (Smalltalk allCallsOn: anOldMethodName asSymbol) collect: [:usg | Usage on: usg replace: selwordsOld with: selwordsNew].! !
+
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/11/2013 00:35'!
+perform
+	| code selwordsNew arguments header newHeader | 
+	
+	newHeader := ''.
+	selwordsNew := newName asString findTokens: ':'.
+
+	"Obtain the arguments names to use them when replacing the code"
+	arguments := (Parser new parse: ( header := class methodHeaderFor: oldName) class: class) arguments collect: [:each | each name].
+	
+	code := class sourceCodeAt: oldName.
+	
+	"Build the new message header"
+	arguments isEmpty 
+		ifTrue: [ newHeader := newName asString.]
+		ifFalse: [ arguments with: selwordsNew do: [:arg :sel | newHeader := newHeader, sel asString,': ',arg,' ']].
+		
+	"Build the new message text"
+	code := newHeader, (code allButFirst: (header size)).
+	
+	class removeSelector: oldName.
+	class compile: code.
+	
+	"Replace the old method name in each of the usages with the new name"
+	usages do:[:usg | usg perform.]! !
+
+!MethodRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:20'!
+forClass: aClassName on: anOldMethodName to: aNewMethodName
+	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:53'!
 initialize
@@ -360,3 +414,24 @@ runSuite
 		[:sel | (sel asString first: 4) = 'test']) 
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:41'!
+initializeWith: methodReference replace: originals with: replacements
+	methodRef := methodReference.
+	oldCode := (Smalltalk classNamed: methodRef classSymbol asString) sourceCodeAt: methodRef methodSymbol.
+	newCode := oldCode.
+	
+	1 to: originals size do:[:i | 	
+			newCode := newCode copyReplaceTokens: (originals at: i)  with: (replacements at: i).
+			].! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/11/2013 00:33'!
+perform
+	| class|
+	class :=	Smalltalk classNamed: methodRef classSymbol asString.
+	class removeSelector: methodRef methodSymbol.
+	class compile: newCode.! !
+
+!Usage class methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:30'!
+on: methodRef replace: originals with: replacements
+	^self new initializeWith: methodRef replace: originals with: replacements.! !
