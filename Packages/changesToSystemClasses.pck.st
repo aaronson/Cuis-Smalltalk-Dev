@@ -1,5 +1,4 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 30 September 2013 at 1:07:35.521 am'!
-
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 13 October 2013 at 9:43:35.297 pm'!
 !Browser methodsFor: 'message functions' stamp: 'NR 9/29/2013 23:53'!
 renameMessage
 	| oldName newName |
@@ -18,6 +17,17 @@ renameMessage
 	self changed: #messageList.
 	self setClassOrganizer.! !
 
+
+!ClassDescription methodsFor: 'instance variables' stamp: 'NR 10/13/2013 21:38'!
+replaceInstVarName: oldName  to: newName
+	| i |
+	(i _ instanceVariables indexOf: oldName) = 0 ifTrue:
+		[self error: oldName , ' is not defined in ', self name].
+	self allSuperclasses , self withAllSubclasses asOrderedCollection do:
+		[:cls | (cls instVarNames includes: newName) ifTrue:
+			[self error: newName , ' is already used in ', cls name]].
+
+	instanceVariables replaceFrom: i to: i with: (Array with: newName).! !
 
 !ClassDescription methodsFor: 'instance variables' stamp: 'NR 9/29/2013 20:40'!
 replaceSilently: old to: new at: usageSelector
@@ -95,6 +105,14 @@ renameIt
 	^morph flash.
 ! !
 
+
+!ClassDescription methodsFor: 'instance variables' stamp: 'NR 10/13/2013 21:37'!
+renameSilentlyInstVar: old  to: new
+	| oldName newName |
+	oldName _ old asString.
+	newName _ new asString.
+	self replaceInstVarName: oldName to: newName.
+	self replaceSilently: oldName to: newName.	"replace in text body of all methods"! !
 
 !ClassDescription methodsFor: 'instance variables' stamp: 'NR 9/29/2013 20:47'!
 replaceSilently: old to: new
@@ -215,7 +233,7 @@ messageListMenu
 ('accessing' classVersion comment comment: comment:stamp: hasComment theMetaClass theNonMetaClass)
 ('copying' copy:from: copy:from:classified: copyAll:from: copyAll:from:classified: copyAllCategoriesFrom: copyCategory:from: copyCategory:from:classified: copyMethodDictionaryFrom:)
 ('printing' classVariablesString instanceVariablesString printOn: printWithClosureAnalysisOn: sharedPoolsString storeOn:)
-('instance variables' addInstVarName: allInstVarNamesEverywhere browseClassVarRefs checkForInstVarsOK: chooseClassVarName chooseInstVarAlphabeticallyThenDo: chooseInstVarThenDo: classThatDefinesClassVariable: classThatDefinesInstanceVariable: forceNewFrom: instVarNameForIndex: instVarNames removeInstVarName: renameInstVar:to: renameSilentlyInstVar:to: replaceSilently:to: replaceSilently:to:at:)
+('instance variables' addInstVarName: allInstVarNamesEverywhere browseClassVarRefs checkForInstVarsOK: chooseClassVarName chooseInstVarAlphabeticallyThenDo: chooseInstVarThenDo: classThatDefinesClassVariable: classThatDefinesInstanceVariable: forceNewFrom: instVarNameForIndex: instVarNames removeInstVarName: renameInstVar:to: renameSilentlyInstVar:to: replaceInstVarName:to: replaceSilently:to: replaceSilently:to:at:)
 ('accessing method dictionary' addAndClassifySelector:withMethod:inProtocol:notifying: addSelector:withMethod:notifying: allMethodCategoriesIntegratedThrough: induceMDFault methodsInCategory: recoverFromMDFault recoverFromMDFaultWithTrace removeCategory: removeSelector: removeSelectorIfInBaseSystem: ultimateSourceCodeAt:ifAbsent:)
 ('organization' category category: organization organization: whichCategoryIncludesSelector: zapOrganization)
 ('compiling' acceptsLoggingOfCompilation compile:classified: compile:classified:notifying: compile:classified:withStamp:notifying: compile:classified:withStamp:notifying:logSource: compile:notifying: compileSilently:classified: compileSilently:classified:notifying: instVarNamesAndOffsetsDo: moveInstVarNamed:to:after: noteCompilationOf:meta: wantsChangeSetLogging wantsRecompilationProgressReported)
