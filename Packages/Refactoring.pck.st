@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 15 October 2013 at 12:19:59.693 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 15 October 2013 at 8:41:03.476 pm'!
 'Description '!
-!provides: 'Refactoring' 1 12!
+!provides: 'Refactoring' 1 13!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -113,9 +113,22 @@ perform
 !Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:49'!
 undo! !
 
-!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:47'!
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:35'!
+initializeForClass: aClassName to: aNewClassName
+
+	oldName := aClassName.
+	newName := aNewClassName .
+	usages := OrderedCollection new.
+
+	(Smalltalk allCallsOn: (Smalltalk associationAt: oldName))
+		do:[ :usg | 
+			usages add: (Usage on: usg replace: oldName with: newName)
+			].! !
+
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:32'!
 perform
-	"Renombrar y reemplazar en los usages"! !
+	(Smalltalk classNamed: oldName) rename: newName.
+	usages do: [:usg | usg perform].! !
 
 !ClassRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:00'!
 forClass: aClassName to: aNewName
@@ -476,9 +489,9 @@ runSuite
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
 
-!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:16'!
+!Usage methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:39'!
 classRef
-	^methodRef classIsMeta ifTrue:[(Smalltalk classNamed: methodRef classSymbol asString) class] ifFalse:[Smalltalk classNamed: methodRef class classSymbol asString].! !
+	^methodRef classIsMeta ifTrue:[(Smalltalk classNamed: methodRef classSymbol asString) class] ifFalse:[Smalltalk classNamed: methodRef classSymbol asString].! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:17'!
 initializeWith: methodReference replace: original with: replacement
