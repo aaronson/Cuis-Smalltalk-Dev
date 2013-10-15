@@ -91,6 +91,37 @@ renameMethod: oldSelector to: newSelector
 		].! !
 
 
+!Class methodsFor: 'class variables' stamp: 'NR 10/15/2013 00:13'!
+replaceClassVarName: old  to: new
+	| oldName newName|
+	oldName  := old asSymbol.
+	newName  := new asSymbol.
+	"(classPool includesKey: oldName) ifFalse:
+		[self error: oldName , ' is not defined in ', self name].
+	self withAllSubclasses asOrderedCollection do:
+		[:cls | (cls classVarNames includes: newName) ifTrue:
+			[self error: newName , ' is already used in ', cls name]]."
+
+	
+	classPool at: newName put: (classPool at: oldName).
+! !
+
+
+!BlaTest methodsFor: 'as yet unclassified' stamp: 'NR 10/11/2013 00:36'!
+lalalala
+	^self yayoLoco.! !
+
+!BlaTest methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:40'!
+yayoLoco
+	^chamuyo.
+	! !
+
+
+!BlaTest class methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:18'!
+dsf
+	Druru := 23! !
+
+
 !SmalltalkEditor methodsFor: 'menu messages' stamp: 'NR 9/29/2013 23:48'!
 renameIt
 	| selection newName class |

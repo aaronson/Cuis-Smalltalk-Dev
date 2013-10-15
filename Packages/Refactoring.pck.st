@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 13 October 2013 at 9:41:49.943 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 15 October 2013 at 12:19:59.693 am'!
 'Description '!
-!provides: 'Refactoring' 1 11!
+!provides: 'Refactoring' 1 12!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -33,7 +33,7 @@ ClassRenameRefactor class
 
 !classDefinition: #ClassVariableRenameRefactor category: #Refactoring!
 Refactor subclass: #ClassVariableRenameRefactor
-	instanceVariableNames: ''
+	instanceVariableNames: 'class'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Refactoring'!
@@ -120,6 +120,31 @@ perform
 !ClassRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:00'!
 forClass: aClassName to: aNewName
 	^self new initializeForClass: aClassName to: aNewName! !
+
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/14/2013 20:01'!
+initializeForClass: aClass on: anOldMethodName to: aNewMethodName
+	|meta|
+	class := aClass.
+	oldName := anOldMethodName.
+	newName := aNewMethodName.
+	meta:= class class.
+	usages := OrderedCollection new.
+
+	meta withAllSubclasses do: [ :cls | |  sels |
+		sels _ cls selectors.
+		sels do: [ :sel | ((meta sourceCodeAt: sel) includesSubString: oldName) ifTrue:[
+				usages add: (Usage on: (MethodReference class: meta selector: sel) replace: oldName with: newName)
+				]
+			]
+		].! !
+
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:19'!
+perform
+ 	"TODO check for exceptions" 
+	class addClassVarName: newName.
+	class replaceClassVarName: oldName to: newName.
+	usages do: [:usg | usg perform].
+	class removeClassVarName: oldName.! !
 
 !ClassVariableRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:01'!
 forClass: aClassName on: anOldVarName to: aNewVarName
@@ -451,10 +476,14 @@ runSuite
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
 
-!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:19'!
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:16'!
+classRef
+	^methodRef classIsMeta ifTrue:[(Smalltalk classNamed: methodRef classSymbol asString) class] ifFalse:[Smalltalk classNamed: methodRef class classSymbol asString].! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:17'!
 initializeWith: methodReference replace: original with: replacement
 	methodRef := methodReference.
-	oldCode := (Smalltalk classNamed: methodRef classSymbol asString) sourceCodeAt: methodRef methodSymbol.
+	oldCode := self classRef sourceCodeAt: methodRef methodSymbol.
 	newCode := oldCode copyReplaceTokens: original  with: replacement
 ! !
 
@@ -468,10 +497,10 @@ initializeWith: methodReference replaceCollection: originals with: replacements
 			newCode := newCode copyReplaceTokens: (originals at: i)  with: (replacements at: i).
 			].! !
 
-!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/11/2013 00:33'!
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:18'!
 perform
 	| class|
-	class :=	Smalltalk classNamed: methodRef classSymbol asString.
+	class := self classRef.
 	class removeSelector: methodRef methodSymbol.
 	class compile: newCode.! !
 
