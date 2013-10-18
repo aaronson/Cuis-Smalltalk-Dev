@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 15 October 2013 at 8:41:03.476 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 18 October 2013 at 1:41:55.015 am'!
 'Description '!
-!provides: 'Refactoring' 1 13!
+!provides: 'Refactoring' 1 14!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -63,7 +63,7 @@ InstanceVariableRenameRefactor class
 
 !classDefinition: #MethodRenameRefactor category: #Refactoring!
 Refactor subclass: #MethodRenameRefactor
-	instanceVariableNames: 'class'
+	instanceVariableNames: 'class arguments oldHeader'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Refactoring'!
@@ -130,6 +130,11 @@ perform
 	(Smalltalk classNamed: oldName) rename: newName.
 	usages do: [:usg | usg perform].! !
 
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 00:37'!
+undo
+	(Smalltalk classNamed: newName) rename: oldName.
+	usages do: [:usg | usg undo].! !
+
 !ClassRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:00'!
 forClass: aClassName to: aNewName
 	^self new initializeForClass: aClassName to: aNewName! !
@@ -159,6 +164,14 @@ perform
 	usages do: [:usg | usg perform].
 	class removeClassVarName: oldName.! !
 
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:04'!
+undo
+ 	"TODO check for exceptions" 
+	class addClassVarName: oldName.
+	class replaceClassVarName: newName to: oldName.
+	usages do: [:usg | usg undo].
+	class removeClassVarName: newName.! !
+
 !ClassVariableRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:01'!
 forClass: aClassName on: anOldVarName to: aNewVarName
 	^self new initializeForClass: aClassName on: anOldVarName to: aNewVarName! !
@@ -187,6 +200,11 @@ perform
 	class replaceInstVarName: oldName to: newName.
 	usages do: [:usg | usg perform]! !
 
+!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:05'!
+undo
+	class replaceInstVarName: newName to: oldName.
+	usages do: [:usg | usg undo]! !
+
 !InstanceVariableRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:00'!
 forClass: aClassName on: anOldVarName to: aNewVarName
 	^self new initializeForClass: aClassName on: anOldVarName to: aNewVarName! !
@@ -205,17 +223,16 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	
 	usages := (Smalltalk allCallsOn: anOldMethodName asSymbol) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
 
-!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/11/2013 00:35'!
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:32'!
 perform
-	| code selwordsNew arguments header newHeader | 
-	
+	| code selwordsNew  newHeader | 
+
 	newHeader := ''.
 	selwordsNew := newName asString findTokens: ':'.
-
-	"Obtain the arguments names to use them when replacing the code"
-	arguments := (Parser new parse: ( header := class methodHeaderFor: oldName) class: class) arguments collect: [:each | each name].
 	
-	code := class sourceCodeAt: oldName.
+	"Obtain the arguments names to use them when replacing the code"
+	arguments := (Parser new parse: ( oldHeader := class methodHeaderFor: oldName) class: class) arguments collect: [:each | each name].
+	code := class sourceCodeAt: oldName.	
 	
 	"Build the new message header"
 	arguments isEmpty 
@@ -223,13 +240,28 @@ perform
 		ifFalse: [ arguments with: selwordsNew do: [:arg :sel | newHeader := newHeader, sel asString,': ',arg,' ']].
 		
 	"Build the new message text"
-	code := newHeader, (code allButFirst: (header size)).
+	code := newHeader, (code allButFirst: (oldHeader size)).
 	
 	class removeSelector: oldName.
 	class compile: code.
 	
 	"Replace the old method name in each of the usages with the new name"
 	usages do:[:usg | usg perform.]! !
+
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:34'!
+undo
+	| code | 
+
+	code := class sourceCodeAt: newName.	
+		
+	"Build the new message text"
+	code := oldHeader, (code allButFirst: ((class methodHeaderFor: newName) size)).
+	
+	class removeSelector: newName.
+	class compile: code.
+	
+	"Replace the old method name in each of the usages with the new name"
+	usages do:[:usg | usg undo.]! !
 
 !MethodRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:20'!
 forClass: aClassName on: anOldMethodName to: aNewMethodName
@@ -510,12 +542,19 @@ initializeWith: methodReference replaceCollection: originals with: replacements
 			newCode := newCode copyReplaceTokens: (originals at: i)  with: (replacements at: i).
 			].! !
 
-!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:18'!
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:39'!
 perform
 	| class|
 	class := self classRef.
 	class removeSelector: methodRef methodSymbol.
 	class compile: newCode.! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:40'!
+undo
+	| class|
+	class := self classRef.
+	class removeSelector: methodRef methodSymbol.
+	class compile: oldCode.! !
 
 !Usage class methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:18'!
 on: methodRef replace: original with: replacement
