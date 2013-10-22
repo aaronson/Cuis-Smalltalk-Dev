@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 22 October 2013 at 1:45:42.027 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 22 October 2013 at 7:33:23.814 pm'!
 'Description '!
-!provides: 'Refactoring' 1 16!
+!provides: 'Refactoring' 1 17!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -476,7 +476,7 @@ test13shouldRenameUsedClassMethod
 	self assert: (tclass sourceCodeAt: #afterRenaming) = 'afterRenaming ^9'.
 	self assert: (testClass afterRenaming = 9).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 23:57'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:48'!
 test14shouldRenameUsedClassMethodWithMultipleKeywords
 	|tclass kw1 kw2 kw3 symbol|
 	kw1 := 'iAmU','sing:'.
@@ -488,7 +488,9 @@ test14shouldRenameUsedClassMethodWithMultipleKeywords
 	tclass compile: 'userMethod ^self ',kw1,' 10 ',kw2,' 20 ',kw3,' 30'.
 	self assert: (tclass selectors includes: symbol).
 	self deny: (tclass selectors includes: #renamedBut:stillTakes:threeParams:).
-	tclass renameMethod: symbol to: #renamedBut:stillTakes:threeParams:.
+	(MethodRenameRefactor forClass: tclass on:  symbol  to: #renamedBut:stillTakes:threeParams:) perform.
+
+	"tclass renameMethod: symbol to: #renamedBut:stillTakes:threeParams:".
 	self deny: (tclass selectors includes: symbol).
 	self assert: (tclass selectors includes: #renamedBut:stillTakes:threeParams:).
 	self assert: (tclass sourceCodeAt: #renamedBut:stillTakes:threeParams:) = 'renamedBut: firstPar stillTakes: secondPar threeParams: thirdPar  ^firstPar + secondPar + thirdPar'.
@@ -547,11 +549,11 @@ runSuite
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
 
-!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:42'!
-classMethodToUse ^9! !
+!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:48'!
+iAmUsing: firstPar threeDifferent: secondPar keywordsClassMethod: thirdPar ^firstPar + secondPar + thirdPar! !
 
-!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:42'!
-methodThatUsed ^self classMethodToUse! !
+!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:48'!
+userMethod ^self iAmUsing: 10 threeDifferent: 20 keywordsClassMethod: 30! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:39'!
 classRef
