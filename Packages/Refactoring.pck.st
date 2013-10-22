@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 18 October 2013 at 1:41:55.015 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 22 October 2013 at 1:45:42.027 am'!
 'Description '!
-!provides: 'Refactoring' 1 14!
+!provides: 'Refactoring' 1 16!
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -90,6 +90,16 @@ TestCase subclass: #RefactoringTest
 !classDefinition: 'RefactoringTest class' category: #Refactoring!
 RefactoringTest class
 	instanceVariableNames: ''!
+
+!classDefinition: #TestClass category: #Refactoring!
+Object subclass: #TestClass
+	instanceVariableNames: 'varOne'
+	classVariableNames: 'ClassVarOne'
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'TestClass class' category: #Refactoring!
+TestClass class
+	instanceVariableNames: 'cinvar'!
 
 !classDefinition: #Usage category: #Refactoring!
 Object subclass: #Usage
@@ -298,38 +308,43 @@ setUp
 tearDown
 	testClass removeFromSystem! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/30/2013 00:53'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:12'!
 test01shouldRenameNonUsedInstanceVariable.
 	self assert: (testClass instanceVariablesString = 'varOne').
-	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'.
+	(InstanceVariableRenameRefactor new initializeForClass: testClass on: 'varOne' to: 'renamed')perform.
+"	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'."
 	self assert: (testClass instanceVariablesString = 'renamed').! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/30/2013 00:53'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:13'!
 test02shouldRenameNonUsedClassVariable.
 	self assert: (testClass classVariablesString = 'ClassVarOne').
-	testClass renameSilentlyClassVar: 'ClassVarOne' to: 'Renamed'.
+	(InstanceVariableRenameRefactor forClass:testClass on: 'ClassVarOne' to: 'renamed') perform.
 	self assert: (testClass classVariablesString = 'Renamed').! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/30/2013 00:53'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:48'!
 test03shouldRenameUsedInstanceVariable.
 	self assert: (testClass instanceVariablesString = 'varOne').
 	testClass compile: 'useInstVar varOne := 3. ^varOne'.
-	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'.
+	(InstanceVariableRenameRefactor forClass:testClass on: 'ClassVarOne' to: 'renamed') perform.
+
+"	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'."
 	self assert: (testClass instanceVariablesString = 'renamed').
 	self assert: (testClass new useInstVar = 3).
 	self assert: ((testClass sourceCodeAt: #useInstVar) = 'useInstVar renamed := 3. ^renamed')! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/30/2013 00:53'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:48'!
 test04shouldRenameUsedClassVariable.
 
 	self assert: (testClass classVariablesString = 'ClassVarOne').
 	testClass class compile: 'newMethod ClassVarOne := 42. ^ClassVarOne'.
-	testClass renameSilentlyClassVar:'ClassVarOne' to: 'Renamed'.
+	(ClassVariableRenameRefactor forClass:testClass on: 'ClassVarOne' to: 'Renamed') perform.
+
+	"testClass renameSilentlyClassVar:'ClassVarOne' to: 'Renamed'."
 	self assert: (testClass classVariablesString = 'Renamed').
 	self assert: (testClass newMethod = 42).
 	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod Renamed := 42. ^Renamed'.! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 19:30'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:50'!
 test05shouldRenameNonUsedInstanceMethod
 	| oldMethodName|
 	oldMethodName := 'methodT','oRename'.
@@ -337,13 +352,15 @@ test05shouldRenameNonUsedInstanceMethod
 	testClass compile: (oldMethodName,' ^12').
 	self assert: (testClass selectors includes: oldMethodName asSymbol).
 	self deny: (testClass selectors includes: #iWasRenamed).
-	testClass renameMethod: oldMethodName asSymbol to: #iWasRenamed.
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform.
+
+"	testClass renameMethod: oldMethodName asSymbol to: #iWasRenamed."
 	self deny: (testClass selectors includes: oldMethodName asSymbol).
 	self assert: (testClass selectors includes: #iWasRenamed).
 	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
 	self assert: (testClass new iWasRenamed = 12).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:21'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:50'!
 test06shouldRenameNonUsedInstanceMethodWithMultipleKeywords
 	| kw1 kw2 kw3 symbol|
 	kw1 := 'thisI','sAMethod:'.
@@ -357,10 +374,9 @@ test06shouldRenameNonUsedInstanceMethodWithMultipleKeywords
 	self deny: (testClass selectors includes: symbol).
 	self assert: (testClass selectors includes: #andNow:hasNew:keywordNames:).
 	self assert: (testClass sourceCodeAt: #andNow:hasNew:keywordNames:) = 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar  ^firstPar + secondPar + thirdPar'.
-	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42).
-! !
+	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:32'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:51'!
 test07shouldRenameUsedInstanceMethod
 	| oldMethodName|
 	oldMethodName := 'instMetho','dToRename'.
@@ -374,7 +390,7 @@ test07shouldRenameUsedInstanceMethod
 	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
 	self assert: (testClass new iWasRenamed = 12).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:49'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:51'!
 test08shouldRenameUsedInstanceMethodWithMultipleKeywords
 	| kw1 kw2 kw3 symbol|
 	kw1 := 'thisUse','dMethod:'.
@@ -391,35 +407,41 @@ test08shouldRenameUsedInstanceMethodWithMultipleKeywords
 	self assert: (testClass sourceCodeAt: #andNow:hasNew:keywordNames:) = 'andNow: firstPar hasNew: secondPar keywordNames: thirdPar  ^firstPar + secondPar + thirdPar'.
 	self assert: ((testClass new andNow: 10 hasNew: 11 keywordNames: 21) = 42).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/30/2013 00:54'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:23'!
 test09shouldRenameNonUsedClassInstanceVariable
 	self assert: (testClass class instanceVariablesString = 'cinvar').
-	testClass class renameSilentlyInstVar: 'cinvar' to: 'cvrenamed'.
+	(InstanceVariableRenameRefactor forClass:testClass class on: 'cinvar'  to: 'cvrenamed') perform.
+
+	"testClass class renameSilentlyInstVar: 'cinvar' to: 'cvrenamed'."
 	self assert: (testClass class instanceVariablesString = 'cvrenamed').! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 9/29/2013 23:34'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:25'!
 test10shouldRenameUsedClassInstanceVariable
 	self assert: (testClass class instanceVariablesString = 'cinvar').
 	testClass class compile: 'useCIV cinvar := 23. ^cinvar'.
-	testClass class renameSilentlyInstVar: 'cinvar' to: 'cvrenamed'.
+	(InstanceVariableRenameRefactor forClass:testClass class on: 'cinvar'  to: 'cvrenamed') perform.
+
+"	testClass class renameSilentlyInstVar: 'cinvar' to: 'cvrenamed'."
 	self assert: (testClass class instanceVariablesString = 'cvrenamed').
 	self assert: (testClass useCIV = 23).
 	self assert: ((testClass class sourceCodeAt: #useCIV) =   'useCIV cvrenamed := 23. ^cvrenamed').! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:43'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:26'!
 test11shouldRenameNonUsedClassMethod
 	| oldMethodName|
 	oldMethodName := 'classMetho','dToRename'.
 	testClass class compile: oldMethodName ,' ^2+3'.
 	self assert: (testClass class selectors includes: oldMethodName asSymbol ).
 	self deny: (testClass class selectors includes: #methodRenamed).
-	testClass class renameMethod: oldMethodName asSymbol to: #methodRenamed.
+	(MethodRenameRefactor forClass:testClass class on: oldMethodName asSymbol  to: #methodRenamed) perform.
+
+"	testClass class renameMethod: oldMethodName asSymbol to: #methodRenamed."
 	self deny: (testClass class selectors includes: oldMethodName asSymbol ).
 	self assert: (testClass class selectors includes: #methodRenamed).
 	self assert: (testClass class sourceCodeAt: #methodRenamed) = 'methodRenamed ^2+3'.
 	self assert: (testClass methodRenamed = 5).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:47'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:27'!
 test12shouldRenameNonUsedClassMethodWithMultipleKeywords
 	| kw1 kw2 kw3 symbol|
 	kw1 := 'thisIsACla','ssMethod:'.
@@ -429,22 +451,26 @@ test12shouldRenameNonUsedClassMethodWithMultipleKeywords
 	testClass class compile: kw1, ' firstPar ',kw2, ' secondPar ',kw3,' thirdPar ^firstPar + secondPar + thirdPar'.
 	self assert: (testClass class selectors includes: symbol).
 	self deny: (testClass class selectors includes: #theClassMethod:hasBeen:renamedAllKeywords:).
-	testClass class renameMethod: symbol to: #theClassMethod:hasBeen:renamedAllKeywords:.
+	(MethodRenameRefactor forClass:testClass class on:  symbol  to: #theClassMethod:hasBeen:renamedAllKeywords:) perform.
+
+"	testClass class renameMethod: symbol to: #theClassMethod:hasBeen:renamedAllKeywords:."
 	self deny: (testClass class selectors includes: symbol).
 	self assert: (testClass class selectors includes: #theClassMethod:hasBeen:renamedAllKeywords:).
 	self assert: (testClass class sourceCodeAt: #theClassMethod:hasBeen:renamedAllKeywords:) = 'theClassMethod: firstPar hasBeen: secondPar renamedAllKeywords: thirdPar  ^firstPar + secondPar + thirdPar'.
 	self assert: ((testClass theClassMethod: 3 hasBeen: 4 renamedAllKeywords: 5) = 12).! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/8/2013 22:45'!
+!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 01:41'!
 test13shouldRenameUsedClassMethod
 	|tclass oldMethodName|
 	tclass := testClass class .
-	oldMethodName := 'classMetho','dToUse'.
+	oldMethodName := 'classMethodToUse'.
 	testClass class compile: oldMethodName , ' ^9'.
 	tclass compile: 'methodThatUsed ^self ',oldMethodName .
 	self assert: (tclass selectors includes: oldMethodName asSymbol ).
 	self deny: (tclass selectors includes: #afterRenaming).
-	tclass renameMethod: oldMethodName asSymbol to: #afterRenaming.
+	(MethodRenameRefactor forClass: tclass on: oldMethodName asSymbol  to: #afterRenaming) perform.
+
+"	tclass renameMethod: oldMethodName asSymbol to: #afterRenaming."
 	self deny: (tclass selectors includes: oldMethodName asSymbol).
 	self assert: (tclass selectors includes: #afterRenaming).
 	self assert: (tclass sourceCodeAt: #afterRenaming) = 'afterRenaming ^9'.
@@ -520,6 +546,12 @@ runSuite
 		[:sel | (sel asString first: 4) = 'test']) 
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
+
+!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:42'!
+classMethodToUse ^9! !
+
+!TestClass class methodsFor: 'as yet unclassified' stamp: 'AA 10/22/2013 01:42'!
+methodThatUsed ^self classMethodToUse! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:39'!
 classRef
