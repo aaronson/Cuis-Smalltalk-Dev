@@ -1,6 +1,16 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 18 October 2013 at 1:41:55.015 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 23 October 2013 at 12:35:07.231 am'!
 'Description '!
-!provides: 'Refactoring' 1 14!
+!provides: 'Refactoring' 1 15!
+!classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
+ActiveModel subclass: #RefactorListModel
+	instanceVariableNames: 'refactors selection'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-GUI'!
+!classDefinition: 'RefactorListModel class' category: #'Refactoring-GUI'!
+RefactorListModel class
+	instanceVariableNames: ''!
+
 !classDefinition: #RefactoringException category: #Refactoring!
 Error subclass: #RefactoringException
 	instanceVariableNames: ''
@@ -9,6 +19,16 @@ Error subclass: #RefactoringException
 	category: 'Refactoring'!
 !classDefinition: 'RefactoringException class' category: #Refactoring!
 RefactoringException class
+	instanceVariableNames: ''!
+
+!classDefinition: #RefactorListWindow category: #'Refactoring-GUI'!
+SystemWindow subclass: #RefactorListWindow
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-GUI'!
+!classDefinition: 'RefactorListWindow class' category: #'Refactoring-GUI'!
+RefactorListWindow class
 	instanceVariableNames: ''!
 
 !classDefinition: #Refactor category: #Refactoring!
@@ -74,7 +94,7 @@ MethodRenameRefactor class
 !classDefinition: #RefactorOrganizer category: #Refactoring!
 Object subclass: #RefactorOrganizer
 	instanceVariableNames: 'refactors lastUndoneRefactor'
-	classVariableNames: ''
+	classVariableNames: 'Instance'
 	poolDictionaries: ''
 	category: 'Refactoring'!
 !classDefinition: 'RefactorOrganizer class' category: #Refactoring!
@@ -102,16 +122,85 @@ Usage class
 	instanceVariableNames: ''!
 
 
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
+initialize
+	self updateRefactors.
+	RefactorOrganizer instance when: #refactorListModified send: #updateRefactors to:self.
+	! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:15'!
+refactors
+	^refactors collect: [:ref | ref class asString, ': ', ref oldName, ' ->> ', ref newName.] ! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/20/2013 19:52'!
+selection
+	^selection! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/20/2013 19:53'!
+selectionIndex
+	^ refactors indexOf: selection! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/20/2013 19:54'!
+selectionIndex: anInteger
+
+	selection _ anInteger = 0 ifFalse: [ refactors at: anInteger ].! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 21:28'!
+undo
+	selection ifNotNil: [RefactorOrganizer instance undo: selection.]! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:53'!
+updateRefactors
+	refactors := RefactorOrganizer instance refactors! !
+
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
 	^'The new name should contain the same amount of keywords as the old method name'! !
 
-!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:46'!
-perform
-	self subclassResponsibility ! !
+!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 21:16'!
+buildMorphicWindow
+	 |refactorList upperRow buttonRow undoButton redoButton exploreButton| 
+	
+	refactorList := PluggableListMorph 
+		model: model
+		listGetter: #refactors 
+		indexGetter: #selectionIndex
+		indexSetter: #selectionIndex:.
+	upperRow := LayoutMorph newRow.
+	upperRow addMorph: refactorList.
+	
+	undoButton _ PluggableButtonMorph model: model action: #undo label: 'Undo Refactor'.
+	exploreButton _ PluggableButtonMorph model: model action: #explore label: 'Explore Refactor'.
+	redoButton _ PluggableButtonMorph model: model action: #redo label: 'Redo Last Undone Refactor'.
+	
+	buttonRow _ LayoutMorph newRow.
+	buttonRow
+		color: self widgetsColor quiteWhiter;
+		addMorph: undoButton proportionalWidth: 0.6;
+		addMorph: exploreButton proportionalWidth: 0.6;
+		addMorph: redoButton proportionalWidth: 0.6.
 
-!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:49'!
-undo! !
+	self layoutMorph
+		addMorph: upperRow proportionalHeight: 0.9;
+		addAdjusterAndMorph: buttonRow proportionalHeight: 0.1.
+		
+	self setLabel: 'Refactor Organizer'! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:19'!
+newName
+	^newName! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:19'!
+oldName
+	^oldName! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:55'!
+perform
+	RefactorOrganizer instance addRefactor: self.! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:18'!
+undo
+	self subclassResponsibility.! !
 
 !ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:35'!
 initializeForClass: aClassName to: aNewClassName
@@ -125,10 +214,11 @@ initializeForClass: aClassName to: aNewClassName
 			usages add: (Usage on: usg replace: oldName with: newName)
 			].! !
 
-!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:32'!
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:55'!
 perform
 	(Smalltalk classNamed: oldName) rename: newName.
-	usages do: [:usg | usg perform].! !
+	usages do: [:usg | usg perform].
+	super perform.! !
 
 !ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 00:37'!
 undo
@@ -156,13 +246,14 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 			]
 		].! !
 
-!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/15/2013 00:19'!
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
  	"TODO check for exceptions" 
 	class addClassVarName: newName.
 	class replaceClassVarName: oldName to: newName.
 	usages do: [:usg | usg perform].
-	class removeClassVarName: oldName.! !
+	class removeClassVarName: oldName.
+	super perform.! !
 
 !ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:04'!
 undo
@@ -195,10 +286,11 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
  
 ! !
 
-!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:39'!
+!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
 	class replaceInstVarName: oldName to: newName.
-	usages do: [:usg | usg perform]! !
+	usages do: [:usg | usg perform].
+	super perform.! !
 
 !InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:05'!
 undo
@@ -223,7 +315,7 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	
 	usages := (Smalltalk allCallsOn: anOldMethodName asSymbol) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
 
-!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:32'!
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
 	| code selwordsNew  newHeader | 
 
@@ -246,7 +338,9 @@ perform
 	class compile: code.
 	
 	"Replace the old method name in each of the usages with the new name"
-	usages do:[:usg | usg perform.]! !
+	usages do:[:usg | usg perform.].
+	
+	super perform.! !
 
 !MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:34'!
 undo
@@ -267,25 +361,40 @@ undo
 forClass: aClassName on: anOldMethodName to: aNewMethodName
 	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName! !
 
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
+addRefactor: aRefactor
+	refactors add: aRefactor.
+	self triggerEvent: #refactorListModified.! !
+
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:53'!
 initialize
 	refactors := OrderedCollection new.
 	lastUndoneRefactor := DummyRefactor new.! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 21:10'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:14'!
 redo
 	"ver que no sea dummy"
 	lastUndoneRefactor perform.
 	refactors addFirst: lastUndoneRefactor.
 	lastUndoneRefactor := DummyRefactor new.! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 21:06'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:14'!
+refactors
+	^refactors! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
 undo: aRefactor
 
 	(refactors includes: aRefactor) ifFalse: [RefactoringException new signal: 'Unrecognized refactor'].
 	aRefactor undo.
 	lastUndoneRefactor := aRefactor.
-	1 to: (refactors indexOf: aRefactor) do: [refactors removeFirst.].! !
+	1 to: (refactors indexOf: aRefactor) do: [:a | refactors removeFirst.].
+	self triggerEvent: #refactorListModified.! !
+
+!RefactorOrganizer class methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 00:47'!
+instance
+	Instance isNil ifTrue: [^Instance := self new].
+	^Instance! !
 
 !RefactoringTest methodsFor: 'Running' stamp: 'NR 9/24/2013 21:05'!
 setUp
