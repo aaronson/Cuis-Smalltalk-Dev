@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 23 October 2013 at 1:52:41.492 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 23 October 2013 at 11:33:55.242 pm'!
 'Description '!
-!provides: 'Refactoring' 1 18!
+!provides: 'Refactoring' 1 19!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -9,6 +9,16 @@ ActiveModel subclass: #RefactorListModel
 	category: 'Refactoring-GUI'!
 !classDefinition: 'RefactorListModel class' category: #'Refactoring-GUI'!
 RefactorListModel class
+	instanceVariableNames: ''!
+
+!classDefinition: #RefactorModel category: #'Refactoring-GUI'!
+ActiveModel subclass: #RefactorModel
+	instanceVariableNames: 'usages selection'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-GUI'!
+!classDefinition: 'RefactorModel class' category: #'Refactoring-GUI'!
+RefactorModel class
 	instanceVariableNames: ''!
 
 !classDefinition: #RefactoringException category: #Refactoring!
@@ -29,6 +39,16 @@ SystemWindow subclass: #RefactorListWindow
 	category: 'Refactoring-GUI'!
 !classDefinition: 'RefactorListWindow class' category: #'Refactoring-GUI'!
 RefactorListWindow class
+	instanceVariableNames: ''!
+
+!classDefinition: #RefactorWindow category: #'Refactoring-GUI'!
+SystemWindow subclass: #RefactorWindow
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-GUI'!
+!classDefinition: 'RefactorWindow class' category: #'Refactoring-GUI'!
+RefactorWindow class
 	instanceVariableNames: ''!
 
 !classDefinition: #Refactor category: #Refactoring!
@@ -122,6 +142,10 @@ Usage class
 	instanceVariableNames: ''!
 
 
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:54'!
+browseRefactor
+	selection ifNotNil: [RefactorWindow open: (RefactorModel with: (refactors at: self selectionIndex ) ).]! !
+
 !RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
 initialize
 	self updateRefactors.
@@ -153,11 +177,48 @@ undo
 updateRefactors
 	refactors := RefactorOrganizer instance refactors! !
 
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:51'!
+newCodeSelected
+
+	selection ifNil: [ ^'' ].
+	^selection newCode.! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:49'!
+oldCodeSelected
+
+	selection ifNil: [ ^'' ].
+	^selection oldCode.! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:05'!
+selection
+	^ selection! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:05'!
+selectionIndex
+	^ usages indexOf: selection! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:05'!
+selectionIndex: anInteger
+
+	selection _ anInteger = 0 ifFalse: [ usages at: anInteger ].! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:56'!
+usages
+	^usages collect: [:usg | usg classRef asString, ': ', usg methodSymbol]! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:00'!
+withUsages: usg
+	usages := usg.! !
+
+!RefactorModel class methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:54'!
+with: refactor
+	^self new withUsages: refactor usages.! !
+
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
 	^'The new name should contain the same amount of keywords as the old method name'! !
 
-!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 01:51'!
+!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 20:44'!
 buildMorphicWindow
 	 |refactorList upperRow buttonRow undoButton redoButton exploreButton| 
 	
@@ -170,7 +231,7 @@ buildMorphicWindow
 	upperRow addMorph: refactorList.
 	
 	undoButton _ PluggableButtonMorph model: model action: #undo label: 'Undo Refactor'.
-	exploreButton _ PluggableButtonMorph model: model action: #explore label: 'Explore Refactor'.
+	exploreButton _ PluggableButtonMorph model: model action: #browseRefactor label: 'Browse Refactor'.
 	redoButton _ PluggableButtonMorph model: model action: #redo label: 'Redo Last Undone Refactor'.
 	
 	buttonRow _ LayoutMorph newRow.
@@ -183,8 +244,42 @@ buildMorphicWindow
 	self layoutMorph
 		addMorph: upperRow proportionalHeight: 0.9;
 		addAdjusterAndMorph: buttonRow proportionalHeight: 0.1.
-			self setUpdatablePanesFrom: #(#refactors).
+	self setUpdatablePanesFrom: #(#refactors).
 	self setLabel: 'Refactor Organizer'! !
+
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 23:07'!
+buildMorphicWindow
+	 |usagesList oldCode newCode upperRow middleRow lowerRow | 
+	
+	usagesList := PluggableListMorph 
+		model: model
+		listGetter: #usages 
+		indexGetter: #selectionIndex
+		indexSetter: #selectionIndex:.
+	upperRow := LayoutMorph newRow.
+	upperRow addMorph: usagesList.
+	
+	
+	oldCode := TextModelMorph 
+		textProvider: model
+		textGetter: #oldCodeSelected .
+				.
+	middleRow := LayoutMorph newRow.
+	middleRow addMorph: oldCode.
+	
+	newCode := TextModelMorph 
+		textProvider: model
+		textGetter: #newCodeSelected. 
+		
+	lowerRow := LayoutMorph newRow.
+	lowerRow addMorph: newCode.
+	
+	self layoutMorph
+		addMorph: upperRow proportionalHeight: 0.3;
+		addAdjusterAndMorph: middleRow proportionalHeight: 0.3;
+		addAdjusterAndMorph: lowerRow proportionalHeight: 0.3.
+	self setUpdatablePanesFrom: #(#usages).
+	self setLabel: 'Method changes'! !
 
 !Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:19'!
 newName
@@ -201,6 +296,10 @@ perform
 !Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:18'!
 undo
 	self subclassResponsibility.! !
+
+!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:55'!
+usages
+	^usages! !
 
 !ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:35'!
 initializeForClass: aClassName to: aNewClassName
@@ -672,6 +771,18 @@ initializeWith: methodReference replaceCollection: originals with: replacements
 	1 to: originals size do:[:i | 	
 			newCode := newCode copyReplaceTokens: (originals at: i)  with: (replacements at: i).
 			].! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:04'!
+methodSymbol.
+	^ methodRef methodSymbol.! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:49'!
+newCode
+	^newCode! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:49'!
+oldCode
+	^oldCode! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/18/2013 01:39'!
 perform
