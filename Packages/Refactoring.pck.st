@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 24 October 2013 at 12:38:15.301 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 24 October 2013 at 12:56:13.35 am'!
 'Description '!
-!provides: 'Refactoring' 1 21!
+!provides: 'Refactoring' 1 22!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -413,13 +413,16 @@ undo
 forClass: aClassName on: anOldVarName to: aNewVarName
 	^self new initializeForClass: aClassName on: anOldVarName to: aNewVarName! !
 
-!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/13/2013 21:32'!
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/24/2013 00:55'!
 initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	| selwordsOld selwordsNew| 
 	class := aClass.
 	oldName := anOldMethodName.
 	newName := aNewMethodName.
 	
+	     (class canUnderstand: oldName)
+		ifFalse: [RefactoringException new signal: oldName , '  is not defined in the class'].
+
 	"Find how many keywords are there"
 	selwordsOld := oldName asString findTokens: ':'.
 	selwordsNew := newName asString findTokens: ':'.
