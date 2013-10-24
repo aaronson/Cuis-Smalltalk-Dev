@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 23 October 2013 at 10:30:17.675 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 24 October 2013 at 12:18:39.701 am'!
 'Description '!
-!provides: 'Refactoring' 1 19!
+!provides: 'Refactoring' 1 20!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -110,16 +110,6 @@ TestCase subclass: #RefactoringTest
 !classDefinition: 'RefactoringTest class' category: #Refactoring!
 RefactoringTest class
 	instanceVariableNames: ''!
-
-!classDefinition: #TestClass category: #Refactoring!
-Object subclass: #TestClass
-	instanceVariableNames: 'varOne'
-	classVariableNames: 'ClassVarOne'
-	poolDictionaries: ''
-	category: 'Refactoring'!
-!classDefinition: 'TestClass class' category: #Refactoring!
-TestClass class
-	instanceVariableNames: 'cinvar'!
 
 !classDefinition: #Usage category: #Refactoring!
 Object subclass: #Usage
@@ -239,7 +229,7 @@ undo
 forClass: aClassName to: aNewName
 	^self new initializeForClass: aClassName to: aNewName! !
 
-!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/14/2013 20:01'!
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/24/2013 00:16'!
 initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	|meta|
 	class := aClass.
@@ -247,7 +237,8 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	newName := aNewMethodName.
 	meta:= class class.
 	usages := OrderedCollection new.
-
+     (class classVarNames includes: oldName)
+		ifFalse: [RefactoringException new signal: oldName , '  is not defined in the class'].
 	meta withAllSubclasses do: [ :cls | |  sels |
 		sels _ cls selectors.
 		sels do: [ :sel | ((meta sourceCodeAt: sel) includesSubString: oldName) ifTrue:[
@@ -277,7 +268,7 @@ undo
 forClass: aClassName on: anOldVarName to: aNewVarName
 	^self new initializeForClass: aClassName on: anOldVarName to: aNewVarName! !
 
-!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'AA 10/23/2013 22:28'!
+!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/24/2013 00:15'!
 initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	
 	class := aClass.
@@ -286,10 +277,16 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	
 	usages := OrderedCollection new.
 	"Find how many keywords are there"
+	
+	(class instVarNames includes: oldName)
+		ifFalse: [RefactoringException new signal: oldName , '  is not defined in the class'].
 	class withAllSubclasses do: [ :cls | |  sels |
 		
 		sels _ cls selectors.
+		
+		
 		sels do: [ :sel | ((class sourceCodeAt: sel) includesSubString: oldName) ifTrue:[
+				
 				usages add: (Usage on: (MethodReference class: class selector: sel) replace: oldName with: newName)
 				]
 			]
@@ -658,11 +655,11 @@ test18RenamingInstanceVariableToSomethingThatAlreadyExistsShouldRaiseException
 	self assert: (testClass instanceVariablesString = 'varOne another').
 ! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/23/2013 21:27'!
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/24/2013 00:17'!
 test19RenamingClassVariableThatDoesntExistShouldRaiseException
-       self assert: (testClass classVariablesString = 'ClassVarOnes').
-       self should:[(ClassVariableRenameRefactor forClass:testClass on:'NlassVarOne' to:'Renamed')perform.] raise: Error description: 'Notexist is not defined in TestClass'.
-       self assert: (testClass classVariablesString = 'ClassVarOnes')
+       self assert: (testClass classVariablesString = 'ClassVarOne').
+       self should:[(ClassVariableRenameRefactor forClass:testClass on:'NlassVarOne' to:'Renamed')perform.] raise: Error description: 'NlassVarOne is not defined in the class'.
+       self assert: (testClass classVariablesString = 'ClassVarOne')
 
 ! !
 
