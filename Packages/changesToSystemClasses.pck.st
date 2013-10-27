@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 13 October 2013 at 9:43:35.297 pm'!
-!Browser methodsFor: 'message functions' stamp: 'NR 9/29/2013 23:53'!
-renameMessage
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 26 October 2013 at 11:46:13.526 pm'!
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 23:46'!
+renameMessage: aScope
 	| oldName newName |
 	selectedMessage ifNil: [ ^ self ].
 	oldName _ self selectedMessageName.
@@ -10,12 +10,33 @@ renameMessage
 	newName = '' ifTrue: [ ^ self ].
 	newName _ newName asSymbol.
 	newName = oldName ifTrue: [ ^ self ].
-	self selectedClassOrMetaClass 
+	"self selectedClassOrMetaClass 
 		renameMethod: oldName
-		to: newName.
+		to: newName."
+	RefactorPerformWindow open: (RefactorModel with: (MethodRenameRefactor forClass: self selectedClassOrMetaClass on: oldName  to: newName with: aScope)).
 	self messageListIndex: 0.
 	self changed: #messageList.
 	self setClassOrganizer.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:56'!
+renameMessageAllClasses
+	self renameMessage: AllScope new.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:56'!
+renameMessageClass
+	self renameMessage: ClassScope new.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:57'!
+renameMessageClassAndSubclasses
+	self renameMessage: ClassAndSubclassScope new.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:57'!
+renameMessageClassCategory
+	self renameMessage: ClassCategoryScope new.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:57'!
+renameMessageMethodCategory
+	self renameMessage: MethodCategoryScope new.! !
 
 
 !ClassDescription methodsFor: 'instance variables' stamp: 'NR 10/13/2013 21:38'!
@@ -106,7 +127,7 @@ replaceClassVarName: old  to: new
 	classPool at: newName put: (classPool at: oldName).
 ! !
 
-!SmalltalkEditor methodsFor: 'menu messages' stamp: 'NR 9/29/2013 23:48'!
+!SmalltalkEditor methodsFor: 'menu messages' stamp: 'NR 10/26/2013 19:25'!
 renameIt
 	| selection newName class |
 	self selectWord.
@@ -115,10 +136,50 @@ renameIt
 		request: 'Please type new variable name'
 		initialAnswer: selection.
 	class _ self codeProvider selectedClassOrMetaClass.
-	(class instVarNames includes: selection) ifTrue:[ ^class renameSilentlyInstVar: selection to: newName].
-	(class theNonMetaClass classVarNames includes: selection) ifTrue:[^ class theNonMetaClass renameSilentlyClassVar: selection to: newName].
+	(class instVarNames includes: selection) ifTrue:[ ^RefactorPerformWindow open: (RefactorModel with: (InstanceVariableRenameRefactor forClass: class on: selection  to: newName) )].
+	(class theNonMetaClass classVarNames includes: selection) ifTrue:[
+		^RefactorPerformWindow open: (RefactorModel with: (ClassVariableRenameRefactor forClass: class theNonMetaClass on: selection  to: newName) )].
 	^morph flash.
 ! !
+
+!BrowserWindow methodsFor: 'menu building' stamp: 'NR 10/26/2013 21:53'!
+openRenameMessageOptionsMenu
+	"Offer the rename message selector-list menu"
+
+	^ self renameMessageOptions popUpInWorld! !
+
+!BrowserWindow methodsFor: 'menu building' stamp: 'NR 10/26/2013 21:49'!
+renameMessageOptions
+	"Answer the message-list menu"
+	"Changed by emm to include menu-item for breakpoints"
+
+	| aMenu |
+	aMenu _ (MenuMorph entitled: 'Select scope to use') defaultTarget: self.
+	aMenu addList:#(
+			('Rename in all classes'			renameMessageAllClasses				''		model)
+			('Rename only in class'			renameMessageClass				''		model)
+			('Rename only in class and subclasses'			renameMessageClassAndSubclasses				''		model)
+			('Rename only in class category'			renameMessageClassCategory				''		model)
+			('Rename only in method category'			renameMessageMethodCategory				''		model)
+).
+	^ aMenu
+! !
+
+
+!Browser methodsFor: 'class functions' stamp: 'NR 10/26/2013 20:31'!
+renameClass
+	| oldName newName |
+	selectedClassName ifNil: [ ^self ].
+	oldName _ self selectedClass name.
+	newName _ self request: 'Please type new class name' initialAnswer: oldName.
+	newName = '' ifTrue: [^ self].  " Cancel returns '' "
+	newName _ newName asSymbol.
+	newName = oldName ifTrue: [^ self].
+	(Smalltalk includesKey: newName)
+		ifTrue: [^ self error: newName , ' already exists'].
+	(RefactorPerformWindow open: (RefactorModel with: (ClassRenameRefactor forClass: (Smalltalk classNamed: oldName) to: newName)))
+	"self changed: #classList.
+	self classListIndex: ((systemOrganizer listAtCategoryNamed: selectedSystemCategory) indexOf: newName).]"! !
 
 
 !ClassDescription methodsFor: 'instance variables' stamp: 'NR 10/13/2013 21:37'!
@@ -206,7 +267,7 @@ initializeMenu
 	}! !
 
 
-!BrowserWindow methodsFor: 'menu building' stamp: 'NR 9/26/2013 00:13'!
+!BrowserWindow methodsFor: 'menu building' stamp: 'NR 10/26/2013 21:51'!
 messageListMenu
 	"Answer the message-list menu"
 	"Changed by emm to include menu-item for breakpoints"
@@ -236,12 +297,40 @@ messageListMenu
 			('class refs (N)'					browseClassRefs)
 			-
 			('remove method (x)'			removeMessage							''		model)
-			('rename method' 				renameMessage 						''		model)
+			('rename method' 				openRenameMessageOptionsMenu)
 			-
 			('more...'						openShiftedMessageListMenu)).
 	^ aMenu
 ! !
 
+
+!Parser methodsFor: 'error correction' stamp: 'NR 10/26/2013 20:44'!
+correctSelector: proposedKeyword wordIntervals: spots exprInterval: expInt ifAbort: abortAction
+	"Correct the proposedKeyword to some selector symbol, correcting the original text if such action is indicated.  abortAction is invoked if the proposedKeyword couldn't be converted into a valid selector.  Spots is an ordered collection of intervals within the test stream of the for each of the keyword parts."
+
+	| correctSelector userSelection |
+	"If we can't ask the user, assume that the keyword will be defined later"
+	self interactive ifFalse: [^proposedKeyword asSymbol].
+
+	"If the requestor is of an exotic kind (like a telnet server) we might not be allowed to open a PupUpMenu for querying the user"
+	"
+	((requestor isKindOf: Editor) or: [ requestor is: #Morph ])
+		ifFalse: [ ^ proposedKeyword asSymbol ].
+	"
+
+	userSelection _ requestor selectionInterval.
+	requestor selectFrom: spots first first to: spots last last.
+
+	correctSelector _ UnknownSelector name: proposedKeyword.
+	correctSelector ifNil: [^abortAction value].
+
+	requestor selectInvisiblyFrom: userSelection first to: userSelection last.
+
+	self substituteSelector: correctSelector keywords wordIntervals: spots.
+	^(proposedKeyword last ~~ $:
+	   and: [correctSelector last == $:])
+		ifTrue: [abortAction value]
+		ifFalse: [correctSelector]! !
 
 !ClassDescription reorganize!
 ('initialize-release' doneCompiling obsolete superclass:methodDictionary:format: updateInstances:from:isMeta: updateInstancesFrom:)
@@ -259,4 +348,31 @@ messageListMenu
 ('system-support' allUnreferencedClassVariables)
 ('refactoring' renameMethod:to:)
 !
-
+!classMoveToSomePackage: #ClassRenameRefactor!
+Smalltalk removeClassNamedIfInBaseSystem: #ClassRenameRefactor!
+!classMoveToSomePackage: #ClassVariableRenameRefactor!
+Smalltalk removeClassNamedIfInBaseSystem: #ClassVariableRenameRefactor!
+!classMoveToSomePackage: #DummyRefactor!
+Smalltalk removeClassNamedIfInBaseSystem: #DummyRefactor!
+!classMoveToSomePackage: #InstanceVariableRenameRefactor!
+Smalltalk removeClassNamedIfInBaseSystem: #InstanceVariableRenameRefactor!
+!classMoveToSomePackage: #MethodRenameRefactor!
+Smalltalk removeClassNamedIfInBaseSystem: #MethodRenameRefactor!
+!classMoveToSomePackage: #Refactor!
+Smalltalk removeClassNamedIfInBaseSystem: #Refactor!
+!classMoveToSomePackage: #RefactorListModel!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorListModel!
+!classMoveToSomePackage: #RefactorListWindow!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorListWindow!
+!classMoveToSomePackage: #RefactorModel!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorModel!
+!classMoveToSomePackage: #RefactorOrganizer!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorOrganizer!
+!classMoveToSomePackage: #RefactorWindow!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorWindow!
+!classMoveToSomePackage: #RefactoringException!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactoringException!
+!classMoveToSomePackage: #RefactoringTest!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactoringTest!
+!classMoveToSomePackage: #Usage!
+Smalltalk removeClassNamedIfInBaseSystem: #Usage!

@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 24 October 2013 at 12:56:13.35 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 26 October 2013 at 11:38:36.249 pm'!
 'Description '!
-!provides: 'Refactoring' 1 22!
+!provides: 'Refactoring' 1 24!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -13,7 +13,7 @@ RefactorListModel class
 
 !classDefinition: #RefactorModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorModel
-	instanceVariableNames: 'usages selection'
+	instanceVariableNames: 'selection refactor'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Refactoring-GUI'!
@@ -49,6 +49,16 @@ SystemWindow subclass: #RefactorWindow
 	category: 'Refactoring-GUI'!
 !classDefinition: 'RefactorWindow class' category: #'Refactoring-GUI'!
 RefactorWindow class
+	instanceVariableNames: ''!
+
+!classDefinition: #RefactorPerformWindow category: #'Refactoring-GUI'!
+RefactorWindow subclass: #RefactorPerformWindow
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-GUI'!
+!classDefinition: 'RefactorPerformWindow class' category: #'Refactoring-GUI'!
+RefactorPerformWindow class
 	instanceVariableNames: ''!
 
 !classDefinition: #Refactor category: #Refactoring!
@@ -121,6 +131,66 @@ Object subclass: #RefactorOrganizer
 RefactorOrganizer class
 	instanceVariableNames: ''!
 
+!classDefinition: #Scope category: #'Refactoring-Scope'!
+Object subclass: #Scope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'Scope class' category: #'Refactoring-Scope'!
+Scope class
+	instanceVariableNames: ''!
+
+!classDefinition: #AllScope category: #'Refactoring-Scope'!
+Scope subclass: #AllScope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'AllScope class' category: #'Refactoring-Scope'!
+AllScope class
+	instanceVariableNames: ''!
+
+!classDefinition: #ClassAndSubclassScope category: #'Refactoring-Scope'!
+Scope subclass: #ClassAndSubclassScope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'ClassAndSubclassScope class' category: #'Refactoring-Scope'!
+ClassAndSubclassScope class
+	instanceVariableNames: ''!
+
+!classDefinition: #ClassCategoryScope category: #'Refactoring-Scope'!
+Scope subclass: #ClassCategoryScope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'ClassCategoryScope class' category: #'Refactoring-Scope'!
+ClassCategoryScope class
+	instanceVariableNames: ''!
+
+!classDefinition: #ClassScope category: #'Refactoring-Scope'!
+Scope subclass: #ClassScope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'ClassScope class' category: #'Refactoring-Scope'!
+ClassScope class
+	instanceVariableNames: ''!
+
+!classDefinition: #MethodCategoryScope category: #'Refactoring-Scope'!
+Scope subclass: #MethodCategoryScope
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring-Scope'!
+!classDefinition: 'MethodCategoryScope class' category: #'Refactoring-Scope'!
+MethodCategoryScope class
+	instanceVariableNames: ''!
+
 !classDefinition: #RefactoringTest category: #Refactoring!
 TestCase subclass: #RefactoringTest
 	instanceVariableNames: 'testClass'
@@ -191,33 +261,43 @@ oldCodeSelected
 	selection ifNil: [ ^'' ].
 	^selection oldCode.! !
 
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:23'!
+performRefactor
+	refactor perform! !
+
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 20:33'!
+removeUsage
+	refactor usages remove: selection.
+	self changed: #usages.
+	self selectionIndex: 0.! !
+
 !RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:05'!
 selection
 	^ selection! !
 
-!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:05'!
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:09'!
 selectionIndex
-	^ usages indexOf: selection! !
+	^ refactor usages indexOf: selection! !
 
-!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:36'!
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:09'!
 selectionIndex: anInteger
 
-	selection _ anInteger = 0 ifFalse: [ usages at: anInteger ].
+	selection _ anInteger = 0 ifFalse: [ refactor usages at: anInteger ].
 	self changed: #oldCodeSelected.
 	self changed: #newCodeSelected.
 ! !
 
-!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:56'!
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:09'!
 usages
-	^usages collect: [:usg | usg classRef asString, ': ', usg methodSymbol]! !
+	^refactor usages collect: [:usg | usg classRef asString, ': ', usg methodSymbol]! !
 
-!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:00'!
-withUsages: usg
-	usages := usg.! !
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:09'!
+withRefactor: ref
+	refactor := ref.! !
 
-!RefactorModel class methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:54'!
+!RefactorModel class methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:09'!
 with: refactor
-	^self new withUsages: refactor usages.! !
+	^self new withRefactor: refactor! !
 
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
@@ -252,32 +332,12 @@ buildMorphicWindow
 	self setUpdatablePanesFrom: #(#refactors).
 	self setLabel: 'Refactor Organizer'! !
 
-!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 23:07'!
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:05'!
 buildMorphicWindow
-	 |usagesList oldCode newCode upperRow middleRow lowerRow | 
-	
-	usagesList := PluggableListMorph 
-		model: model
-		listGetter: #usages 
-		indexGetter: #selectionIndex
-		indexSetter: #selectionIndex:.
-	upperRow := LayoutMorph newRow.
-	upperRow addMorph: usagesList.
-	
-	
-	oldCode := TextModelMorph 
-		textProvider: model
-		textGetter: #oldCodeSelected .
-				.
-	middleRow := LayoutMorph newRow.
-	middleRow addMorph: oldCode.
-	
-	newCode := TextModelMorph 
-		textProvider: model
-		textGetter: #newCodeSelected. 
-		
-	lowerRow := LayoutMorph newRow.
-	lowerRow addMorph: newCode.
+	 | upperRow middleRow lowerRow | 
+	upperRow := self buildUsagesListRow.
+	middleRow := self buildOldCodeRow.
+	lowerRow  := self buildNewCodeRow.
 	
 	self layoutMorph
 		addMorph: upperRow proportionalHeight: 0.3;
@@ -285,6 +345,80 @@ buildMorphicWindow
 		addAdjusterAndMorph: lowerRow proportionalHeight: 0.3.
 	self setUpdatablePanesFrom: #(#usages).
 	self setLabel: 'Method changes'! !
+
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:04'!
+buildNewCodeRow
+	| lowerRow newCode |
+	newCode := TextModelMorph 
+		textProvider: model
+		textGetter: #newCodeSelected. 
+		
+	lowerRow := LayoutMorph newRow.
+	lowerRow addMorph: newCode.
+	^lowerRow
+	! !
+
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:02'!
+buildOldCodeRow
+	| middleRow oldCode |
+	oldCode := TextModelMorph 
+		textProvider: model
+		textGetter: #oldCodeSelected .
+				.
+	middleRow := LayoutMorph newRow.
+	middleRow addMorph: oldCode.
+	^middleRow ! !
+
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:02'!
+buildUsagesListRow
+	|usagesList row|
+	usagesList := PluggableListMorph 
+		model: model
+		listGetter: #usages 
+		indexGetter: #selectionIndex
+		indexSetter: #selectionIndex:.
+	row := LayoutMorph newRow.
+	row addMorph: usagesList.
+	^row! !
+
+!RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 19:28'!
+buildMorphicWindow
+	 | upperRow middleRow lowerRow buttonRow performButton removeButton cancelButton | 
+	upperRow := self buildUsagesListRow.
+	middleRow := self buildOldCodeRow.
+	lowerRow  := self buildNewCodeRow.
+	
+	removeButton _ PluggableButtonMorph model: model action: #removeUsage label: 'Remove Usage'.
+	performButton _ PluggableButtonMorph model: self action: #performRefactor label: 'Perform Refactor'.
+	cancelButton _ PluggableButtonMorph model: self action: #cancelRefactor label: 'Cancel Refactor'.
+
+	
+	buttonRow _ LayoutMorph newRow.
+	buttonRow
+		color: self widgetsColor quiteWhiter;
+		addMorph: removeButton proportionalWidth: 0.33;
+		addMorph: performButton proportionalWidth: 0.33;
+		addMorph: cancelButton proportionalWidth: 0.33.
+
+	
+	self layoutMorph
+		addMorph: upperRow proportionalHeight: 0.3;
+		addAdjusterAndMorph: middleRow proportionalHeight: 0.3;
+		addAdjusterAndMorph: lowerRow proportionalHeight: 0.3;
+		addAdjusterAndMorph: buttonRow proportionalHeight: 0.1.
+
+	self setUpdatablePanesFrom: #(#usages).
+	self setLabel: 'Select methods to perform rename on'! !
+
+!RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 20:00'!
+cancelRefactor
+	self delete.
+	^false.! !
+
+!RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 23:32'!
+performRefactor
+	model performRefactor.
+	self delete.! !
 
 !Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:19'!
 newName
@@ -306,14 +440,14 @@ undo
 usages
 	^usages! !
 
-!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:32'!
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 20:29'!
 initializeForClass: aClass to: aNewClassName
 
 	oldName := aClass name.
 	newName := aNewClassName .
 	usages := OrderedCollection new.
 
-	(Smalltalk allCallsOn: aClass)
+	(Smalltalk allCallsOn: (Smalltalk associationAt: oldName))
 		do:[ :usg | 
 			usages add: (Usage on: usg replace: oldName with: newName)
 			].! !
@@ -413,22 +547,23 @@ undo
 forClass: aClassName on: anOldVarName to: aNewVarName
 	^self new initializeForClass: aClassName on: anOldVarName to: aNewVarName! !
 
-!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/24/2013 00:55'!
-initializeForClass: aClass on: anOldMethodName to: aNewMethodName
-	| selwordsOld selwordsNew| 
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:25'!
+initializeForClass: aClass on: anOldMethodName to: aNewMethodName withScope: aScope
+	| selwordsOld selwordsNew reference| 
 	class := aClass.
 	oldName := anOldMethodName.
 	newName := aNewMethodName.
 	
-	     (class canUnderstand: oldName)
-		ifFalse: [RefactoringException new signal: oldName , '  is not defined in the class'].
+	(class canUnderstand: oldName)
+		ifFalse: [RefactoringException new signal: oldName , ' is not defined in the class'].
 
 	"Find how many keywords are there"
 	selwordsOld := oldName asString findTokens: ':'.
 	selwordsNew := newName asString findTokens: ':'.
 	(selwordsOld size = selwordsNew size) ifFalse: [RefactoringException new signal: RefactoringException differentKeywordsAmountMessage ].	
 	
-	usages := (Smalltalk allCallsOn: anOldMethodName asSymbol) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
+	reference := MethodReference class: class selector: oldName.
+	usages :=((Smalltalk allCallsOn: anOldMethodName asSymbol) select: [:newref | aScope is: newref inScopeOf: reference]) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
 
 !MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
@@ -472,9 +607,13 @@ undo
 	"Replace the old method name in each of the usages with the new name"
 	usages do:[:usg | usg undo.]! !
 
-!MethodRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/10/2013 23:20'!
+!MethodRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:03'!
 forClass: aClassName on: anOldMethodName to: aNewMethodName
-	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName! !
+	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName withScope: AllScope new! !
+
+!MethodRenameRefactor class methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 17:54'!
+forClass: aClassName on: anOldMethodName to: aNewMethodName with: aScope
+	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName withScope: aScope! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:21'!
 addRefactor: aRefactor
@@ -516,6 +655,30 @@ instance
 	Instance isNil ifTrue: [^Instance := self new].
 	^Instance! !
 
+!Scope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:26'!
+is: reference inScopeOf: originalMethodRef 
+	self subclassResponsibility ! !
+
+!AllScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:28'!
+is: reference inScopeOf: originalMethodRef 
+	^true! !
+
+!ClassAndSubclassScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:28'!
+is: reference inScopeOf: originalMethodRef 
+	^ reference actualClass inheritsFrom: originalMethodRef actualClass! !
+
+!ClassCategoryScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:27'!
+is: reference inScopeOf: originalMethodRef 
+	^ reference actualClass category = originalMethodRef actualClass category! !
+
+!ClassScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:27'!
+is: reference inScopeOf: originalMethodRef 
+	^ reference actualClass = originalMethodRef actualClass! !
+
+!MethodCategoryScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:26'!
+is: reference inScopeOf: originalMethodRef 
+	^ reference category = originalMethodRef category! !
+
 !RefactoringTest methodsFor: 'Running' stamp: 'NR 9/24/2013 21:05'!
 setUp
 	super setUp.
@@ -527,11 +690,11 @@ setUp
 tearDown
 	testClass removeFromSystem! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/23/2013 21:10'!
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/26/2013 18:30'!
 test01shouldRenameNonUsedInstanceVariable.
 	self assert: (testClass instanceVariablesString = 'varOne').
 	(InstanceVariableRenameRefactor  forClass: testClass on: 'varOne' to: 'renamed')perform.
-"	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'."
+	"	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'."
 	self assert: (testClass instanceVariablesString = 'renamed').! !
 
 !RefactoringTest methodsFor: 'tests' stamp: 'AA 10/23/2013 20:55'!
