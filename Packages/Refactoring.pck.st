@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 7:31:34.924 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 8:43:53.712 pm'!
 'Description '!
-!provides: 'Refactoring' 1 26!
+!provides: 'Refactoring' 1 28!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -463,12 +463,19 @@ undo
 usages
 	^usages! !
 
-!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 20:29'!
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/27/2013 20:43'!
 initializeForClass: aClass to: aNewClassName
 
 	oldName := aClass name.
 	newName := aNewClassName .
 	usages := OrderedCollection new.
+	
+	(Smalltalk hasClassNamed:aClass name)
+		ifFalse: [RefactoringException new signal: aClass name , '  is not declared'].
+	
+	(Smalltalk hasClassNamed:aNewClassName name)
+		ifTrue: [RefactoringException new signal: aNewClassName name , '  is already declared'].
+		
 
 	(Smalltalk allCallsOn: (Smalltalk associationAt: oldName))
 		do:[ :usg | 
@@ -490,7 +497,7 @@ undo
 forClass: aClassName to: aNewName
 	^self new initializeForClass: aClassName to: aNewName! !
 
-!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/24/2013 00:16'!
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'Aa 10/27/2013 20:43'!
 initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	|meta|
 	class := aClass.
@@ -500,6 +507,10 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 	usages := OrderedCollection new.
      (class classVarNames includes: oldName)
 		ifFalse: [RefactoringException new signal: oldName , '  is not defined in the class'].
+		
+	(class classVarNames includes: newName)
+		ifTrue: [RefactoringException new signal: newName , '  is already defined in the class'].
+	
 	meta withAllSubclasses do: [ :cls | |  sels |
 		sels _ cls selectors.
 		sels do: [ :sel | ((meta sourceCodeAt: sel) includesSubString: oldName) ifTrue:[
@@ -755,21 +766,22 @@ test04shouldRenameUsedClassVariable.
 	self assert: (testClass newMethod = 42).
 	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod Renamed := 42. ^Renamed'.! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/22/2013 00:50'!
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 19:55'!
 test05shouldRenameNonUsedInstanceMethod
-	| oldMethodName|
-	oldMethodName := 'methodT','oRename'.
- 
-	testClass compile: (oldMethodName,' ^12').
-	self assert: (testClass selectors includes: oldMethodName asSymbol).
-	self deny: (testClass selectors includes: #iWasRenamed).
-	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform.
+       | oldMethodName|
+       oldMethodName := 'methodT','oRename'.
 
-"	testClass renameMethod: oldMethodName asSymbol to: #iWasRenamed."
-	self deny: (testClass selectors includes: oldMethodName asSymbol).
-	self assert: (testClass selectors includes: #iWasRenamed).
-	self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
-	self assert: (testClass new iWasRenamed = 12).! !
+       testClass compile: (oldMethodName,' ^12').
+       self assert: (testClass selectors includes: oldMethodName asSymbol).
+       self deny: (testClass selectors includes: #iWasRenamed).
+       (MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform.
+
+"        testClass renameMethod: oldMethodName asSymbol to: #iWasRenamed."
+       self deny: (testClass selectors includes: oldMethodName asSymbol).
+       self assert: (testClass selectors includes: #iWasRenamed).
+       self assert: (testClass sourceCodeAt: #iWasRenamed) = 'iWasRenamed ^12'.
+       self assert: (testClass new iWasRenamed = 12).
+! !
 
 !RefactoringTest methodsFor: 'tests' stamp: 'AA 10/23/2013 21:00'!
 test06shouldRenameNonUsedInstanceMethodWithMultipleKeywords
@@ -963,11 +975,11 @@ test19RenamingClassVariableThatDoesntExistShouldRaiseException
 
 ! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'AA 10/23/2013 21:16'!
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 20:02'!
 test20RenamingClassVariableToSomethingThatAlreadyExistsShouldRaiseException
 	testClass addClassVarName: 'Another'.
 	self assert: (testClass classVariablesString = 'Another ClassVarOne').
-	self should:[(ClassRenameRefactor forClass:'ClassVarOne' to: 'Another')perform.] raise: Error description: 'Another is already used in TestClass'.
+	self should:[(ClassVariableRenameRefactor forClass:'ClassVarOne' to: 'Another')perform.] raise: Error description: 'Another is already used in TestClass'.
 	self assert: (testClass classVariablesString = 'Another ClassVarOne').
 ! !
 
@@ -1058,6 +1070,32 @@ test27refactorOrganizerCanUndoAndRedo
 	instance redo.
 	self assert: ( instance refactors size =1).
 	self assert: ((( instance refactors at:1) newName)=  'renamed') .! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 19:54'!
+test28canRenameMethodThatCallsItself
+	| oldMethodName|
+	oldMethodName := 'methodT','oRename'.
+ 
+	testClass compile: (oldMethodName,' ^',oldMethodName).
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform.
+
+	self deny: (testClass selectors includes: oldMethodName asSymbol).
+	self assert: (testClass selectors includes: #iWasRenamed).
+	self assert: ((testClass sourceCodeAt: #iWasRenamed) = ('iWasRenamed ^iWasRenamed')).! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 20:22'!
+test29RenamingClassToSomethingThatAlreadyExistsShouldRaiseException
+	|renamed|
+	self should:[(ClassVariableRenameRefactor forClass:testClass to: 'Collection')perform.] raise: Error description: 'Another is already declared'.
+      self assert: (testClass name asString= 'TestClass').
+
+! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 20:40'!
+test30RenamingClassThatDoesntExistShouldRaiseException
+       self should:[(ClassRenameRefactor forClass:'testClasses'  to:'Renamed')perform.] raise: Error description: 'testClasses is not declared'.
+
+! !
 
 !RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/29/2013 23:37'!
 runSuite
