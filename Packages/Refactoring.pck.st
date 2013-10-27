@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 26 October 2013 at 11:38:36.249 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 7:22:31.222 pm'!
 'Description '!
-!provides: 'Refactoring' 1 24!
+!provides: 'Refactoring' 1 25!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -200,6 +200,16 @@ TestCase subclass: #RefactoringTest
 !classDefinition: 'RefactoringTest class' category: #Refactoring!
 RefactoringTest class
 	instanceVariableNames: ''!
+
+!classDefinition: #TestClass category: #Refactoring!
+Object subclass: #TestClass
+	instanceVariableNames: 'renamed'
+	classVariableNames: 'ClassVarOne'
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'TestClass class' category: #Refactoring!
+TestClass class
+	instanceVariableNames: 'cinvar'!
 
 !classDefinition: #Usage category: #Refactoring!
 Object subclass: #Usage
@@ -679,11 +689,12 @@ is: reference inScopeOf: originalMethodRef
 is: reference inScopeOf: originalMethodRef 
 	^ reference category = originalMethodRef category! !
 
-!RefactoringTest methodsFor: 'Running' stamp: 'NR 9/24/2013 21:05'!
+!RefactoringTest methodsFor: 'Running' stamp: 'Aa 10/27/2013 18:02'!
 setUp
 	super setUp.
 	testClass := Object subclass: #TestClass instanceVariableNames: 'varOne' classVariableNames: 'ClassVarOne'  poolDictionaries: '' category: 'Refactoring'.
-	testClass class addInstVarName: 'cinvar'
+	testClass class addInstVarName: 'cinvar'.
+	RefactorOrganizer instance clear
 	! !
 
 !RefactoringTest methodsFor: 'Running' stamp: 'NR 9/19/2013 21:31'!
@@ -942,12 +953,103 @@ test20RenamingClassVariableToSomethingThatAlreadyExistsShouldRaiseException
 	self assert: (testClass classVariablesString = 'Another ClassVarOne').
 ! !
 
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 17:16'!
+test21shouldUndoRenameUsedInstanceVariable.
+	self assert: (testClass instanceVariablesString = 'varOne').
+	testClass compile: 'useInstVar varOne := 3. ^varOne'.
+	((InstanceVariableRenameRefactor forClass:testClass on: 'varOne' to: 'renamed') perform)undo.
+
+"	testClass renameSilentlyInstVar: 'varOne' to: 'renamed'."
+	self assert: (testClass instanceVariablesString = 'varOne').
+	self assert: (testClass new useInstVar = 3).
+	self assert: ((testClass sourceCodeAt: #useInstVar) = 'useInstVar varOne := 3. ^varOne')! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 17:16'!
+test22shouldUndoRenameUsedClassVariable.
+
+	self assert: (testClass classVariablesString = 'ClassVarOne').
+	testClass class compile: 'newMethod ClassVarOne := 42. ^ClassVarOne'.
+	((ClassVariableRenameRefactor forClass:testClass on: 'ClassVarOne' to: 'Renamed') perform)undo.
+
+	"testClass renameSilentlyClassVar:'ClassVarOne' to: 'Renamed'."
+	self assert: (testClass classVariablesString = 'ClassVarOne').
+	self assert: (testClass newMethod = 42).
+	self assert: (testClass class  sourceCodeAt: #newMethod) = 'newMethod ClassVarOne := 42. ^ClassVarOne'.! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 17:44'!
+test23shouldUndoRenameUsedInstanceMethod
+	| oldMethodName|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	testClass compile: 'newMethod ^self iWasRenamed'.
+	self assert: (testClass selectors includes: oldMethodName asSymbol).
+	self deny: (testClass selectors includes: #iWasRenamed).
+	
+	((MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform)undo.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self deny: (testClass selectors includes: #iWasRenamed).
+	self assert: (testClass selectors includes: oldMethodName asSymbol).
+	self assert: ((testClass sourceCodeAt: oldMethodName asSymbol) = (oldMethodName ,' ^12')).! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 17:44'!
+test24shouldUndoRenameUsedClassInstanceVariable
+	self assert: (testClass class instanceVariablesString = 'cinvar').
+	testClass class compile: 'useCIV cinvar := 23. ^cinvar'.
+	((InstanceVariableRenameRefactor forClass:testClass class on: 'cinvar'  to: 'cvrenamed') perform)undo.
+
+"	testClass class renameSilentlyInstVar: 'cinvar' to: 'cvrenamed'."
+	self assert: (testClass class instanceVariablesString = 'cinvar').
+	self assert: (testClass useCIV = 23).
+	self assert: ((testClass class sourceCodeAt: #useCIV) =   'useCIV cinvar := 23. ^cinvar').! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 17:46'!
+test25shouldUndoRenameUsedClassMethod
+	|tclass oldMethodName|
+	tclass := testClass class .
+	oldMethodName := 'classMethodToUse'.
+	testClass class compile: oldMethodName , ' ^9'.
+	tclass compile: 'methodThatUsed ^self ',oldMethodName .
+	self assert: (tclass selectors includes: oldMethodName asSymbol ).
+	self deny: (tclass selectors includes: #afterRenaming).
+	((MethodRenameRefactor forClass: tclass on: oldMethodName asSymbol  to: #afterRenaming) perform)undo.
+
+"	tclass renameMethod: oldMethodName asSymbol to: #afterRenaming."
+	self deny: (tclass selectors includes: #afterRenaming).
+	self assert: (tclass selectors includes: oldMethodName asSymbol).
+	self assert: ((tclass sourceCodeAt: oldMethodName asSymbol) = (oldMethodName , ' ^9')).! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 18:57'!
+test26undoRenameUsedInstanceVariableShoulBeInOrganizer.
+	self assert: (testClass instanceVariablesString = 'varOne').
+	testClass compile: 'useInstVar varOne := 3. ^varOne'.
+	(InstanceVariableRenameRefactor forClass:testClass on: 'varOne' to: 'renamed') perform.
+
+	self assert: (RefactorOrganizer instance refactors size =1).
+	self assert: (((RefactorOrganizer instance refactors at:1) newName)=  'renamed') .! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/27/2013 19:19'!
+test27refactorOrganizerCanUndoAndRedo
+	|instance|
+	instance:=RefactorOrganizer instance.
+	self assert: (testClass instanceVariablesString = 'varOne').
+	testClass compile: 'useInstVar varOne := 3. ^varOne'.
+	(InstanceVariableRenameRefactor forClass:testClass on: 'varOne' to: 'renamed') perform.
+	instance undo: (instance refactors at:1).
+	self assert: ( instance refactors size =0).
+	instance redo.
+	self assert: ( instance refactors size =1).
+	self assert: ((( instance refactors at:1) newName)=  'renamed') .! !
+
 !RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/29/2013 23:37'!
 runSuite
 	(RefactoringTest selectors select:	
 		[:sel | (sel asString first: 4) = 'test']) 
 			do:
 			 [:method | self new setUp perform: method;tearDown].! !
+
+!TestClass methodsFor: 'as yet unclassified' stamp: 'Aa 10/27/2013 19:19'!
+useInstVar renamed := 3. ^renamed! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'AA 10/15/2013 20:39'!
 classRef
