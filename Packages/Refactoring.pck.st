@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 26 October 2013 at 11:38:36.249 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 7:23:07.857 pm'!
 'Description '!
-!provides: 'Refactoring' 1 24!
+!provides: 'Refactoring' 1 25!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -89,16 +89,6 @@ Refactor subclass: #ClassVariableRenameRefactor
 	category: 'Refactoring'!
 !classDefinition: 'ClassVariableRenameRefactor class' category: #Refactoring!
 ClassVariableRenameRefactor class
-	instanceVariableNames: ''!
-
-!classDefinition: #DummyRefactor category: #Refactoring!
-Refactor subclass: #DummyRefactor
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Refactoring'!
-!classDefinition: 'DummyRefactor class' category: #Refactoring!
-DummyRefactor class
 	instanceVariableNames: ''!
 
 !classDefinition: #InstanceVariableRenameRefactor category: #Refactoring!
@@ -216,11 +206,25 @@ Usage class
 browseRefactor
 	selection ifNotNil: [RefactorWindow open: (RefactorModel with: (refactors at: self selectionIndex ) ).]! !
 
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:28'!
+clear
+	RefactorOrganizer instance clear ! !
+
 !RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
 initialize
 	self updateRefactors.
 	RefactorOrganizer instance when: #refactorListModified send: #updateRefactors to:self.
 	! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:35'!
+lastUndoneText
+	|lastUndone| 
+	(lastUndone := RefactorOrganizer instance lastUndoneRefactor) ifNil: [^'No refactor to redo'].
+	^lastUndone class asString, ': ', lastUndone oldName, ' ->> ', lastUndone newName.! !
+
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 16:51'!
+redo
+	RefactorOrganizer instance redo ! !
 
 !RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:15'!
 refactors
@@ -244,10 +248,11 @@ undo
 	selection ifNotNil: [RefactorOrganizer instance undo: selection.].
 	self updateRefactors ! !
 
-!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:16'!
+!RefactorListModel methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:33'!
 updateRefactors
 	refactors := RefactorOrganizer instance refactors.
-	self changed: #refactors! !
+	self changed: #refactors.
+	self changed: #lastUndoneText! !
 
 !RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 22:51'!
 newCodeSelected
@@ -261,9 +266,9 @@ oldCodeSelected
 	selection ifNil: [ ^'' ].
 	^selection oldCode.! !
 
-!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:23'!
+!RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 16:48'!
 performRefactor
-	refactor perform! !
+	refactor perform.! !
 
 !RefactorModel methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 20:33'!
 removeUsage
@@ -303,9 +308,9 @@ with: refactor
 differentKeywordsAmountMessage
 	^'The new name should contain the same amount of keywords as the old method name'! !
 
-!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 20:44'!
+!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:48'!
 buildMorphicWindow
-	 |refactorList upperRow buttonRow undoButton redoButton exploreButton| 
+	 |refactorList upperRow buttonRow undoButton redoButton exploreButton clearButton lastUndoRow lastUndoText | 
 	
 	refactorList := PluggableListMorph 
 		model: model
@@ -318,19 +323,33 @@ buildMorphicWindow
 	undoButton _ PluggableButtonMorph model: model action: #undo label: 'Undo Refactor'.
 	exploreButton _ PluggableButtonMorph model: model action: #browseRefactor label: 'Browse Refactor'.
 	redoButton _ PluggableButtonMorph model: model action: #redo label: 'Redo Last Undone Refactor'.
+	clearButton _ PluggableButtonMorph model: model action: #clear label: 'Clear Refactor List'.
+	
+	lastUndoText := TextModelMorph 
+		textProvider: model
+		textGetter: #lastUndoneText .
+				.
+	lastUndoRow := LayoutMorph newRow.
+	lastUndoRow addMorph: lastUndoText.
 	
 	buttonRow _ LayoutMorph newRow.
 	buttonRow
 		color: self widgetsColor quiteWhiter;
 		addMorph: undoButton proportionalWidth: 0.6;
 		addMorph: exploreButton proportionalWidth: 0.6;
-		addMorph: redoButton proportionalWidth: 0.6.
+		addMorph: redoButton proportionalWidth: 0.6;
+		addMorph: clearButton proportionalWidth: 0.6.
 
 	self layoutMorph
-		addMorph: upperRow proportionalHeight: 0.9;
+		addMorph: upperRow proportionalHeight: 0.8;
+		addAdjusterAndMorph: lastUndoRow proportionalHeight: 0.1;
 		addAdjusterAndMorph: buttonRow proportionalHeight: 0.1.
 	self setUpdatablePanesFrom: #(#refactors).
 	self setLabel: 'Refactor Organizer'! !
+
+!RefactorListWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:53'!
+windowColor
+	^Color blue quiteWhiter! !
 
 !RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/25/2013 00:05'!
 buildMorphicWindow
@@ -381,6 +400,10 @@ buildUsagesListRow
 	row addMorph: usagesList.
 	^row! !
 
+!RefactorWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:53'!
+windowColor
+	^Color red quiteWhiter! !
+
 !RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 19:28'!
 buildMorphicWindow
 	 | upperRow middleRow lowerRow buttonRow performButton removeButton cancelButton | 
@@ -415,7 +438,7 @@ cancelRefactor
 	self delete.
 	^false.! !
 
-!RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 23:32'!
+!RefactorPerformWindow methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 16:34'!
 performRefactor
 	model performRefactor.
 	self delete.! !
@@ -620,22 +643,28 @@ addRefactor: aRefactor
 	refactors addFirst: aRefactor.
 	self triggerEvent: #refactorListModified.! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:16'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:06'!
 clear
 	1 to: refactors size do:[:each | refactors removeLast ].
+	lastUndoneRefactor := nil.
 	self triggerEvent: #refactorListModified! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/9/2013 20:53'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:37'!
 initialize
 	refactors := OrderedCollection new.
-	lastUndoneRefactor := DummyRefactor new.! !
+	lastUndoneRefactor := nil.! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:14'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:32'!
+lastUndoneRefactor
+	^lastUndoneRefactor ! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:06'!
 redo
 	"ver que no sea dummy"
+	lastUndoneRefactor isNil ifFalse:[
 	lastUndoneRefactor perform.
-	refactors addFirst: lastUndoneRefactor.
-	lastUndoneRefactor := DummyRefactor new.! !
+	refactors addFirst: lastUndoneRefactor.].
+	lastUndoneRefactor := nil ! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:14'!
 refactors
