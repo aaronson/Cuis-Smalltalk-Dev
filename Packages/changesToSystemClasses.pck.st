@@ -1,5 +1,5 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 26 October 2013 at 11:46:13.526 pm'!
-!Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 23:46'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 7:32:06.388 pm'!
+!Browser methodsFor: 'message functions' stamp: 'NR 10/27/2013 16:49'!
 renameMessage: aScope
 	| oldName newName |
 	selectedMessage ifNil: [ ^ self ].
@@ -37,6 +37,12 @@ renameMessageClassCategory
 !Browser methodsFor: 'message functions' stamp: 'NR 10/26/2013 21:57'!
 renameMessageMethodCategory
 	self renameMessage: MethodCategoryScope new.! !
+
+!Browser methodsFor: 'message functions' stamp: 'NR 10/27/2013 16:49'!
+updateMessagesList 
+	self messageListIndex: 0.
+	self changed: #messageList.
+	self setClassOrganizer.! !
 
 
 !ClassDescription methodsFor: 'instance variables' stamp: 'NR 10/13/2013 21:38'!
@@ -164,6 +170,12 @@ renameMessageOptions
 ).
 	^ aMenu
 ! !
+
+
+!TheWorldMenu methodsFor: 'commands' stamp: 'NR 10/27/2013 17:21'!
+openRefactorOrganizer
+
+	RefactorListWindow open: RefactorListModel new.! !
 
 
 !Browser methodsFor: 'class functions' stamp: 'NR 10/26/2013 20:31'!
@@ -303,34 +315,35 @@ messageListMenu
 	^ aMenu
 ! !
 
+!TheWorldMenu methodsFor: 'construction' stamp: 'NR 10/27/2013 17:21'!
+openMenu
+	"Build the open window menu for the world."
 
-!Parser methodsFor: 'error correction' stamp: 'NR 10/26/2013 20:44'!
-correctSelector: proposedKeyword wordIntervals: spots exprInterval: expInt ifAbort: abortAction
-	"Correct the proposedKeyword to some selector symbol, correcting the original text if such action is indicated.  abortAction is invoked if the proposedKeyword couldn't be converted into a valid selector.  Spots is an ordered collection of intervals within the test stream of the for each of the keyword parts."
+	| menu |
+	menu _ self menu: 'Open...'.
 
-	| correctSelector userSelection |
-	"If we can't ask the user, assume that the keyword will be defined later"
-	self interactive ifFalse: [^proposedKeyword asSymbol].
+	ExtraOpenCommands ifNotNil: [
+		self fillIn: menu from: ExtraOpenCommands ].
 
-	"If the requestor is of an exotic kind (like a telnet server) we might not be allowed to open a PupUpMenu for querying the user"
-	"
-	((requestor isKindOf: Editor) or: [ requestor is: #Morph ])
-		ifFalse: [ ^ proposedKeyword asSymbol ].
-	"
-
-	userSelection _ requestor selectionInterval.
-	requestor selectFrom: spots first first to: spots last last.
-
-	correctSelector _ UnknownSelector name: proposedKeyword.
-	correctSelector ifNil: [^abortAction value].
-
-	requestor selectInvisiblyFrom: userSelection first to: userSelection last.
-
-	self substituteSelector: correctSelector keywords wordIntervals: spots.
-	^(proposedKeyword last ~~ $:
-	   and: [correctSelector last == $:])
-		ifTrue: [abortAction value]
-		ifFalse: [correctSelector]! !
+	self fillIn: menu from: {
+		{'Text Editor' . {self . #openTextEditor}. 'A window for composing text' }.
+		{'Workspace' . {self . #openWorkspace}. 'A window for evaluating Smalltalk expressions' }.
+		{'Browser' . { self . #openBrowser}. 'A Smalltalk code browser, for studying and modifying the system'}.
+		{'Message Names' . { self . #openMessageNames} . 'A tool for finding and editing methods that contain any given keyword in their names.'}.
+		{'Transcript' . {self . #openTranscript}. 'A window showing contents of the System Transcript' }.
+		nil.
+		{'Installed Packages' . { self . #openPackageList}. 'A tool for managing Packages (optional units of code) installed in the system'}.
+		{'Change Sorter' . {self . #openChangeSorter1} . 'A tool allowing you to view the methods in a Change Set, especially changes to the Base System' }.
+		nil.
+		{ 'Process Browser' . { ProcessBrowserWindow . #openProcessBrowser } }.
+		{ 'Emergency Evaluator'. { Transcripter. #emergencyEvaluator } }.
+		nil.
+		{'File List' . {self . #openFileList} . 'An explorer of the File System' }.
+		{'SUnit Test Runner' . {TestRunnerWindow . #openTestRunner} . 'A tool allowing you to compare and manipulate two change sets concurrently' }.
+		nil.
+		{'Refactor Organizer' . {self. #openRefactorOrganizer} . 'a tool showing the refactors performed' }.
+	}.
+	^menu! !
 
 !ClassDescription reorganize!
 ('initialize-release' doneCompiling obsolete superclass:methodDictionary:format: updateInstances:from:isMeta: updateInstancesFrom:)
@@ -348,14 +361,25 @@ correctSelector: proposedKeyword wordIntervals: spots exprInterval: expInt ifAbo
 ('system-support' allUnreferencedClassVariables)
 ('refactoring' renameMethod:to:)
 !
+
+!classMoveToSomePackage: #AllScope!
+Smalltalk removeClassNamedIfInBaseSystem: #AllScope!
+!classMoveToSomePackage: #ClassAndSubclassScope!
+Smalltalk removeClassNamedIfInBaseSystem: #ClassAndSubclassScope!
+!classMoveToSomePackage: #ClassCategoryScope!
+Smalltalk removeClassNamedIfInBaseSystem: #ClassCategoryScope!
 !classMoveToSomePackage: #ClassRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #ClassRenameRefactor!
+!classMoveToSomePackage: #ClassScope!
+Smalltalk removeClassNamedIfInBaseSystem: #ClassScope!
 !classMoveToSomePackage: #ClassVariableRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #ClassVariableRenameRefactor!
 !classMoveToSomePackage: #DummyRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #DummyRefactor!
 !classMoveToSomePackage: #InstanceVariableRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #InstanceVariableRenameRefactor!
+!classMoveToSomePackage: #MethodCategoryScope!
+Smalltalk removeClassNamedIfInBaseSystem: #MethodCategoryScope!
 !classMoveToSomePackage: #MethodRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #MethodRenameRefactor!
 !classMoveToSomePackage: #Refactor!
@@ -368,11 +392,15 @@ Smalltalk removeClassNamedIfInBaseSystem: #RefactorListWindow!
 Smalltalk removeClassNamedIfInBaseSystem: #RefactorModel!
 !classMoveToSomePackage: #RefactorOrganizer!
 Smalltalk removeClassNamedIfInBaseSystem: #RefactorOrganizer!
+!classMoveToSomePackage: #RefactorPerformWindow!
+Smalltalk removeClassNamedIfInBaseSystem: #RefactorPerformWindow!
 !classMoveToSomePackage: #RefactorWindow!
 Smalltalk removeClassNamedIfInBaseSystem: #RefactorWindow!
 !classMoveToSomePackage: #RefactoringException!
 Smalltalk removeClassNamedIfInBaseSystem: #RefactoringException!
 !classMoveToSomePackage: #RefactoringTest!
 Smalltalk removeClassNamedIfInBaseSystem: #RefactoringTest!
+!classMoveToSomePackage: #Scope!
+Smalltalk removeClassNamedIfInBaseSystem: #Scope!
 !classMoveToSomePackage: #Usage!
 Smalltalk removeClassNamedIfInBaseSystem: #Usage!
