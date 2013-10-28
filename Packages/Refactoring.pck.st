@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 8:43:53.712 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 28 October 2013 at 12:05:06.751 am'!
 'Description '!
-!provides: 'Refactoring' 1 28!
+!provides: 'Refactoring' 1 29!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -599,9 +599,9 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName withScope: aSc
 	reference := MethodReference class: class selector: oldName.
 	usages :=((Smalltalk allCallsOn: anOldMethodName asSymbol) select: [:newref | aScope is: newref inScopeOf: reference]) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
 
-!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 23:46'!
 perform
-	| code selwordsNew  newHeader | 
+	| code selwordsNew  newHeader oldCategory| 
 
 	newHeader := ''.
 	selwordsNew := newName asString findTokens: ':'.
@@ -609,7 +609,7 @@ perform
 	"Obtain the arguments names to use them when replacing the code"
 	arguments := (Parser new parse: ( oldHeader := class methodHeaderFor: oldName) class: class) arguments collect: [:each | each name].
 	code := class sourceCodeAt: oldName.	
-	
+	oldCategory := class organization categoryOfElement: oldName..
 	"Build the new message header"
 	arguments isEmpty 
 		ifTrue: [ newHeader := newName asString.]
@@ -619,7 +619,7 @@ perform
 	code := newHeader, (code allButFirst: (oldHeader size)).
 	
 	class removeSelector: oldName.
-	class compile: code.
+	class compile: code classified: oldCategory .
 	
 	"Replace the old method name in each of the usages with the new name"
 	usages do:[:usg | usg perform.].
@@ -702,9 +702,9 @@ is: reference inScopeOf: originalMethodRef
 is: reference inScopeOf: originalMethodRef 
 	^true! !
 
-!ClassAndSubclassScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:28'!
+!ClassAndSubclassScope methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 23:47'!
 is: reference inScopeOf: originalMethodRef 
-	^ reference actualClass inheritsFrom: originalMethodRef actualClass! !
+	^ reference actualClass  = originalMethodRef actualClass or: (reference actualClass  inheritsFrom: originalMethodRef actualClass)! !
 
 !ClassCategoryScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:27'!
 is: reference inScopeOf: originalMethodRef 
@@ -714,9 +714,9 @@ is: reference inScopeOf: originalMethodRef
 is: reference inScopeOf: originalMethodRef 
 	^ reference actualClass = originalMethodRef actualClass! !
 
-!MethodCategoryScope methodsFor: 'as yet unclassified' stamp: 'NR 10/26/2013 18:26'!
+!MethodCategoryScope methodsFor: 'as yet unclassified' stamp: 'NR 10/28/2013 00:03'!
 is: reference inScopeOf: originalMethodRef 
-	^ reference category = originalMethodRef category! !
+	^ (ClassAndSubclassScope new is: reference inScopeOf: originalMethodRef ) and: (reference category = originalMethodRef category)! !
 
 !RefactoringTest methodsFor: 'Running' stamp: 'Aa 10/27/2013 18:02'!
 setUp
@@ -1096,6 +1096,134 @@ test30RenamingClassThatDoesntExistShouldRaiseException
        self should:[(ClassRenameRefactor forClass:'testClasses'  to:'Renamed')perform.] raise: Error description: 'testClasses is not declared'.
 
 ! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:43'!
+test31shouldRenameMethodWithScopeAll
+	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	methodText :=  'aMethod' , ' ^Te', 'stClass new ', oldMethodName.
+	renamedMethodText :=  'aMethod' , ' ^Te', 'stClass new iWasRenamed'.
+	otherCatClass := Object subclass: #SecondClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'TemporaryCategory'.
+	sameCatClass := Object subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+
+	otherCatClass  compile: methodText.
+	sameCatClass compile: methodText.
+	
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed) perform.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self assert: (otherCatClass sourceCodeAt: #aMethod) = renamedMethodText .
+	self assert: (sameCatClass sourceCodeAt: #aMethod) = renamedMethodText .
+	
+	Smalltalk removeClassNamed: otherCatClass name.
+	Smalltalk removeClassNamed: sameCatClass name.
+! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:43'!
+test32shouldRenameMethodWithScopeCategory
+	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	methodText :=  'aMethod' , ' ^Te', 'stClass new ', oldMethodName.
+	renamedMethodText :=  'aMethod' , ' ^Te', 'stClass new iWasRenamed'.
+	otherCatClass := Object subclass: #SecondClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'TemporaryCategory'.
+	sameCatClass := Object subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+
+	otherCatClass  compile: methodText.
+	sameCatClass compile: methodText.
+	
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: ClassCategoryScope new) perform.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self assert: (otherCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (sameCatClass sourceCodeAt: #aMethod) = renamedMethodText .
+	
+	Smalltalk removeClassNamed: otherCatClass name.
+	Smalltalk removeClassNamed: sameCatClass name.! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:43'!
+test33shouldRenameMethodWithScopeClass
+	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText subclass|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	methodText :=  'aMethod' , ' ^Te', 'stClass new ', oldMethodName.
+	renamedMethodText :=  'aMethod' , ' ^Te', 'stClass new iWasRenamed'.
+	testClass compile: methodText.
+	otherCatClass := Object subclass: #SecondClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'TemporaryCategory'.
+	sameCatClass := Object subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+	subclass := testClass subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+
+	otherCatClass  compile: methodText.
+	sameCatClass compile: methodText.
+	subclass compile: methodText .
+	
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: ClassScope new) perform.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self assert: (otherCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (sameCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (subclass sourceCodeAt: #aMethod) = methodText .
+	self assert: (testClass sourceCodeAt: #aMethod) = renamedMethodText .
+	
+	Smalltalk removeClassNamed: otherCatClass name.
+	Smalltalk removeClassNamed: sameCatClass name.
+	Smalltalk removeClassNamed: subclass name.! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:44'!
+test34shouldRenameMethodWithScopeClassSubClass
+	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText subclass|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	methodText :=  'aMethod' , ' ^Te', 'stClass new ', oldMethodName.
+	renamedMethodText :=  'aMethod' , ' ^Te', 'stClass new iWasRenamed'.
+	testClass compile: methodText.
+	otherCatClass := Object subclass: #SecondClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'TemporaryCategory'.
+	sameCatClass := Object subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+	subclass := testClass subclass: #FourthClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+
+	otherCatClass  compile: methodText.
+	sameCatClass compile: methodText.
+	
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: ClassAndSubclassScope new) perform.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self assert: (otherCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (sameCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (subclass sourceCodeAt: #aMethod) = renamedMethodText .
+	self assert: (testClass sourceCodeAt: #aMethod) = renamedMethodText .
+	
+	Smalltalk removeClassNamed: otherCatClass name.
+	Smalltalk removeClassNamed: sameCatClass name.
+	Smalltalk removeClassNamed: subclass name.! !
+
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/28/2013 00:04'!
+test35shouldRenameMethodWithScopeMethodCategory
+	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText subclass|
+	oldMethodName := 'instMetho','dToRename'.
+	testClass compile: oldMethodName ,' ^12'.
+	methodText :=  'aMethod' , ' ^Te', 'stClass new ', oldMethodName.
+	renamedMethodText :=  'aMethod' , ' ^Te', 'stClass new iWasRenamed'.
+	testClass compile: methodText classified: 'anotherCat'.
+	otherCatClass := Object subclass: #SecondClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'TemporaryCategory'.
+	sameCatClass := Object subclass: #ThirdClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+	subclass := testClass subclass: #FourthClass instanceVariableNames: '' classVariableNames: ''  poolDictionaries: '' category: 'Refactoring'.
+
+	otherCatClass  compile: methodText.
+	sameCatClass compile: methodText.
+	subclass compile: methodText .
+		
+	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: MethodCategoryScope new) perform.
+
+	"testClass renameMethod:  oldMethodName asSymbol to: #iWasRenamed."
+	self assert: (otherCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (sameCatClass sourceCodeAt: #aMethod) = methodText .
+	self assert: (subclass sourceCodeAt: #aMethod) = renamedMethodText .
+	self assert: (testClass sourceCodeAt: #aMethod) = methodText .
+	
+	Smalltalk removeClassNamed: otherCatClass name.
+	Smalltalk removeClassNamed: sameCatClass name.
+	Smalltalk removeClassNamed: subclass name.! !
 
 !RefactoringTest class methodsFor: 'as yet unclassified' stamp: 'NR 9/29/2013 23:37'!
 runSuite

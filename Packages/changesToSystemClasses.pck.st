@@ -1,4 +1,5 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 7:32:06.388 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 27 October 2013 at 10:47:19.364 pm'!
+
 !Browser methodsFor: 'message functions' stamp: 'NR 10/27/2013 16:49'!
 renameMessage: aScope
 	| oldName newName |
@@ -133,6 +134,7 @@ replaceClassVarName: old  to: new
 	classPool at: newName put: (classPool at: oldName).
 ! !
 
+
 !SmalltalkEditor methodsFor: 'menu messages' stamp: 'NR 10/26/2013 19:25'!
 renameIt
 	| selection newName class |
@@ -147,6 +149,7 @@ renameIt
 		^RefactorPerformWindow open: (RefactorModel with: (ClassVariableRenameRefactor forClass: class theNonMetaClass on: selection  to: newName) )].
 	^morph flash.
 ! !
+
 
 !BrowserWindow methodsFor: 'menu building' stamp: 'NR 10/26/2013 21:53'!
 openRenameMessageOptionsMenu
@@ -315,6 +318,7 @@ messageListMenu
 	^ aMenu
 ! !
 
+
 !TheWorldMenu methodsFor: 'construction' stamp: 'NR 10/27/2013 17:21'!
 openMenu
 	"Build the open window menu for the world."
@@ -345,6 +349,7 @@ openMenu
 	}.
 	^menu! !
 
+
 !ClassDescription reorganize!
 ('initialize-release' doneCompiling obsolete superclass:methodDictionary:format: updateInstances:from:isMeta: updateInstancesFrom:)
 ('accessing' classVersion comment comment: comment:stamp: hasComment theMetaClass theNonMetaClass)
@@ -374,8 +379,6 @@ Smalltalk removeClassNamedIfInBaseSystem: #ClassRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #ClassScope!
 !classMoveToSomePackage: #ClassVariableRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #ClassVariableRenameRefactor!
-!classMoveToSomePackage: #DummyRefactor!
-Smalltalk removeClassNamedIfInBaseSystem: #DummyRefactor!
 !classMoveToSomePackage: #InstanceVariableRenameRefactor!
 Smalltalk removeClassNamedIfInBaseSystem: #InstanceVariableRenameRefactor!
 !classMoveToSomePackage: #MethodCategoryScope!
