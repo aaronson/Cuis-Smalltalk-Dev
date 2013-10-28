@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 28 October 2013 at 12:05:06.751 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 28 October 2013 at 12:29:31.801 am'!
 'Description '!
-!provides: 'Refactoring' 1 29!
+!provides: 'Refactoring' 1 30!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -1170,7 +1170,7 @@ test33shouldRenameMethodWithScopeClass
 	Smalltalk removeClassNamed: sameCatClass name.
 	Smalltalk removeClassNamed: subclass name.! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:44'!
+!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/28/2013 00:24'!
 test34shouldRenameMethodWithScopeClassSubClass
 	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText subclass|
 	oldMethodName := 'instMetho','dToRename'.
@@ -1184,6 +1184,8 @@ test34shouldRenameMethodWithScopeClassSubClass
 
 	otherCatClass  compile: methodText.
 	sameCatClass compile: methodText.
+	subclass compile: methodText.
+
 	
 	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: ClassAndSubclassScope new) perform.
 
