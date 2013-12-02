@@ -1,4 +1,4 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 28 October 2013 at 12:29:31.801 am'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 2 December 2013 at 1:08:55.815 am'!
 'Description '!
 !provides: 'Refactoring' 1 30!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
@@ -19,6 +19,26 @@ ActiveModel subclass: #RefactorModel
 	category: 'Refactoring-GUI'!
 !classDefinition: 'RefactorModel class' category: #'Refactoring-GUI'!
 RefactorModel class
+	instanceVariableNames: ''!
+
+!classDefinition: #ConnectedRefactorState category: #Refactoring!
+Object subclass: #ConnectedRefactorState
+	instanceVariableNames: 'socket'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'ConnectedRefactorState class' category: #Refactoring!
+ConnectedRefactorState class
+	instanceVariableNames: ''!
+
+!classDefinition: #DisconnectedRefactorState category: #Refactoring!
+Object subclass: #DisconnectedRefactorState
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Refactoring'!
+!classDefinition: 'DisconnectedRefactorState class' category: #Refactoring!
+DisconnectedRefactorState class
 	instanceVariableNames: ''!
 
 !classDefinition: #RefactoringException category: #Refactoring!
@@ -113,7 +133,7 @@ MethodRenameRefactor class
 
 !classDefinition: #RefactorOrganizer category: #Refactoring!
 Object subclass: #RefactorOrganizer
-	instanceVariableNames: 'refactors lastUndoneRefactor'
+	instanceVariableNames: 'refactors lastUndoneRefactor connectedState'
 	classVariableNames: 'Instance'
 	poolDictionaries: ''
 	category: 'Refactoring'!
@@ -304,6 +324,23 @@ withRefactor: ref
 with: refactor
 	^self new withRefactor: refactor! !
 
+!ConnectedRefactorState methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:31'!
+notifyAddedRefactor: aRefactor
+	"for now, send a string"
+	socket nextPutAll: aRefactor asString; flush.! !
+
+!ConnectedRefactorState methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:25'!
+withHost: aHost andPort: aPort
+	socket := SocketStream openConnectionToHostNamed: 'localhost' port: 7895.! !
+
+!ConnectedRefactorState class methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:22'!
+withHost: aHost andPort: aPort
+	^self new withHost: aHost andPort: aPort.! !
+
+!DisconnectedRefactorState methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:30'!
+notifyAddedRefactor: aRefactor
+	"do nothing, no need to notify".! !
+
 !RefactoringException class methodsFor: 'as yet unclassified' stamp: 'NR 9/30/2013 00:17'!
 differentKeywordsAmountMessage
 	^'The new name should contain the same amount of keywords as the old method name'! !
@@ -482,6 +519,34 @@ initializeForClass: aClass to: aNewClassName
 			usages add: (Usage on: usg replace: oldName with: newName)
 			].! !
 
+!ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 12/2/2013 00:54'!
+jsonWriteOn: s
+	s nextPut: ${.
+	'image' jsonWriteOn: s.
+	s nextPut: $:.
+	Smalltalk imageName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'type' jsonWriteOn: s.
+	s nextPut: $:.
+	'Class Variable' jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'oldName' jsonWriteOn: s.
+	s nextPut: $:.
+	oldName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'newName' jsonWriteOn: s.
+	s nextPut: $:.
+	newName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'usages' jsonWriteOn: s.
+	s nextPut: $:.
+	usages jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'class' jsonWriteOn: s.
+	s nextPut: $:.
+	oldName jsonWriteOn: s.
+	s nextPut: $}.! !
+
 !ClassRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:55'!
 perform
 	(Smalltalk classNamed: oldName) rename: newName.
@@ -518,6 +583,35 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
 				]
 			]
 		].! !
+
+!ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 12/2/2013 00:54'!
+jsonWriteOn: s
+	s nextPut: ${.
+	'image' jsonWriteOn: s.
+	s nextPut: $:.
+	Smalltalk imageName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'type' jsonWriteOn: s.
+	s nextPut: $:.
+	'Class Variable' jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'oldName' jsonWriteOn: s.
+	s nextPut: $:.
+	oldName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'newName' jsonWriteOn: s.
+	s nextPut: $:.
+	newName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'usages' jsonWriteOn: s.
+	s nextPut: $:.
+	usages jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'class' jsonWriteOn: s.
+	s nextPut: $:.
+	class name jsonWriteOn: s.
+	s nextPut: $}.
+! !
 
 !ClassVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
@@ -566,6 +660,35 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName
  
 ! !
 
+!InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 12/2/2013 00:54'!
+jsonWriteOn: s
+	s nextPut: ${.
+	'image' jsonWriteOn: s.
+	s nextPut: $:.
+	Smalltalk imageName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'type' jsonWriteOn: s.
+	s nextPut: $:.
+	'Instance Variable' jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'oldName' jsonWriteOn: s.
+	s nextPut: $:.
+	oldName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'newName' jsonWriteOn: s.
+	s nextPut: $:.
+	newName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'usages' jsonWriteOn: s.
+	s nextPut: $:.
+	usages jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'class' jsonWriteOn: s.
+	s nextPut: $:.
+	class name jsonWriteOn: s.
+	s nextPut: $}.
+! !
+
 !InstanceVariableRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:56'!
 perform
 	class replaceInstVarName: oldName to: newName.
@@ -598,6 +721,35 @@ initializeForClass: aClass on: anOldMethodName to: aNewMethodName withScope: aSc
 	
 	reference := MethodReference class: class selector: oldName.
 	usages :=((Smalltalk allCallsOn: anOldMethodName asSymbol) select: [:newref | aScope is: newref inScopeOf: reference]) collect: [:usg | Usage on: usg replaceCollection: selwordsOld with: selwordsNew].! !
+
+!MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 12/2/2013 00:54'!
+jsonWriteOn: s
+	s nextPut: ${.
+	'image' jsonWriteOn: s.
+	s nextPut: $:.
+	Smalltalk imageName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'type' jsonWriteOn: s.
+	s nextPut: $:.
+	'Method' jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'oldName' jsonWriteOn: s.
+	s nextPut: $:.
+	oldName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'newName' jsonWriteOn: s.
+	s nextPut: $:.
+	newName jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'usages' jsonWriteOn: s.
+	s nextPut: $:.
+	usages jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'class' jsonWriteOn: s.
+	s nextPut: $:.
+	class name jsonWriteOn: s.
+	s nextPut: $}.
+! !
 
 !MethodRenameRefactor methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 23:46'!
 perform
@@ -649,9 +801,10 @@ forClass: aClassName on: anOldMethodName to: aNewMethodName
 forClass: aClassName on: anOldMethodName to: aNewMethodName with: aScope
 	^self new initializeForClass: aClassName on: anOldMethodName to: aNewMethodName withScope: aScope! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/24/2013 00:21'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:30'!
 addRefactor: aRefactor
 	refactors addFirst: aRefactor.
+	connectedState notifyAddedRefactor: aRefactor.
 	self triggerEvent: #refactorListModified.! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:06'!
@@ -660,9 +813,10 @@ clear
 	lastUndoneRefactor := nil.
 	self triggerEvent: #refactorListModified! !
 
-!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:37'!
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:20'!
 initialize
 	refactors := OrderedCollection new.
+	connectedState:= DisconnectedRefactorState new.
 	lastUndoneRefactor := nil.! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/27/2013 18:32'!
@@ -679,6 +833,11 @@ redo
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:14'!
 refactors
 	^refactors! !
+
+!RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 11/30/2013 17:21'!
+setState: aState
+	connectedState = aState.
+	! !
 
 !RefactorOrganizer methodsFor: 'as yet unclassified' stamp: 'NR 10/22/2013 01:52'!
 undo: aRefactor
@@ -1170,7 +1329,7 @@ test33shouldRenameMethodWithScopeClass
 	Smalltalk removeClassNamed: sameCatClass name.
 	Smalltalk removeClassNamed: subclass name.! !
 
-!RefactoringTest methodsFor: 'tests' stamp: 'Aa 10/28/2013 00:24'!
+!RefactoringTest methodsFor: 'tests' stamp: 'NR 10/27/2013 23:44'!
 test34shouldRenameMethodWithScopeClassSubClass
 	| oldMethodName otherCatClass sameCatClass methodText renamedMethodText subclass|
 	oldMethodName := 'instMetho','dToRename'.
@@ -1184,8 +1343,6 @@ test34shouldRenameMethodWithScopeClassSubClass
 
 	otherCatClass  compile: methodText.
 	sameCatClass compile: methodText.
-	subclass compile: methodText.
-
 	
 	(MethodRenameRefactor forClass:testClass on: oldMethodName asSymbol to: #iWasRenamed with: ClassAndSubclassScope new) perform.
 
@@ -1254,6 +1411,28 @@ initializeWith: methodReference replaceCollection: originals with: replacements
 	1 to: originals size do:[:i | 	
 			newCode := newCode copyReplaceTokens: (originals at: i)  with: (replacements at: i).
 			].! !
+
+!Usage methodsFor: 'as yet unclassified' stamp: 'NR 12/2/2013 00:36'!
+jsonWriteOn: s
+	s nextPut: ${.
+	'class' jsonWriteOn: s.
+	s nextPut: $:.
+	methodRef classSymbol jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'method' jsonWriteOn: s.
+	s nextPut: $:.
+	methodRef methodSymbol jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'oldCode' jsonWriteOn: s.
+	s nextPut: $:.
+	oldCode jsonWriteOn: s.
+	s nextPutAll: ', '.
+	'newCode' jsonWriteOn: s.
+	s nextPut: $:.
+	newCode jsonWriteOn: s.
+	s nextPut: $}.
+
+! !
 
 !Usage methodsFor: 'as yet unclassified' stamp: 'NR 10/23/2013 21:04'!
 methodSymbol.
