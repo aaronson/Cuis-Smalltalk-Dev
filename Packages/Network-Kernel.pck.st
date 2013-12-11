@@ -1,4 +1,4 @@
-'From Cuis 4.1 of 12 December 2012 [latest update: #1752] on 14 July 2013 at 5:12:39.435718 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 11 December 2013 at 6:38:25.367 pm'!
 'Description Please enter a description for this package '!
 !provides: 'Network-Kernel' 1 0!
 !classDefinition: #ConnectionQueue category: #'Network-Kernel'!

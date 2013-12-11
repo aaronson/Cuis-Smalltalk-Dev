@@ -1,6 +1,6 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 5 December 2013 at 11:30:29.943 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #1820] on 11 December 2013 at 6:38:23.328 pm'!
 'Description '!
-!provides: 'Refactoring' 1 31!
+!provides: 'Refactoring' 1 32!
 !classDefinition: #RefactorListModel category: #'Refactoring-GUI'!
 ActiveModel subclass: #RefactorListModel
 	instanceVariableNames: 'refactors selection'
@@ -482,11 +482,11 @@ performRefactor
 	model performRefactor.
 	self delete.! !
 
-!Refactor methodsFor: 'as yet unclassified' stamp: 'NR 12/5/2013 21:48'!
+!Refactor methodsFor: 'as yet unclassified' stamp: 'Aa 12/9/2013 21:39'!
 getImageName
 	| c | 
 	c:= Smalltalk imageName findTokens: '\'.
-	c size > 1 ifFalse: [c:= Smalltalk imageName findTokens: '\'].
+	c size > 1 ifFalse: [c:= Smalltalk imageName findTokens: '/'].
 	^c at: c size! !
 
 !Refactor methodsFor: 'as yet unclassified' stamp: 'NR 10/21/2013 20:19'!
